@@ -73,6 +73,43 @@ app.patch('/:id/pay', async (c) => {
   return c.json({ success: true })
 })
 
+// Weekly statement - 每週結算單
+app.get('/weekly-statement', async (c) => {
+  const db = c.env.DB
+  const { customer_name, date_start, date_end } = c.req.query()
+  if (!customer_name || !date_start || !date_end)
+    return c.json({ error: '缺少參數' }, 400)
+
+  const { results } = await db.prepare(
+    `SELECT date, product_name, category, spec, unit, quantity, qty_unit,
+            unit_price, total_amount, note, payment_status
+     FROM sales
+     WHERE customer_name=? AND date >= ? AND date <= ?
+     ORDER BY date ASC, id ASC`
+  ).bind(customer_name, date_start, date_end).all()
+
+  const total = (results as any[]).reduce((s, r) => s + (r.total_amount || 0), 0)
+  const paid   = (results as any[]).filter(r => ['已付款','已付'].includes(r.payment_status)).reduce((s, r) => s + (r.total_amount || 0), 0)
+  const unpaid = total - paid
+
+  // 按日期分組
+  const byDate: Record<string, any[]> = {}
+  for (const r of results as any[]) {
+    const d = r.date.split('T')[0]
+    if (!byDate[d]) byDate[d] = []
+    byDate[d].push(r)
+  }
+
+  return c.json({
+    customer_name,
+    date_start,
+    date_end,
+    items: results,
+    by_date: byDate,
+    summary: { total, paid, unpaid, count: results.length }
+  })
+})
+
 // Customer summary
 app.get('/stats/customer-summary', async (c) => {
   const db = c.env.DB

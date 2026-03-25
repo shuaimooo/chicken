@@ -54,7 +54,7 @@ const pageNames = {
   receivables: '應收帳款', payables: '應付帳款', expenses: '費用記錄',
   cashflow: '現金流水帳', reports: '財務報表', inventory: '庫存管理',
   customers: '客戶管理', suppliers: '廠商管理', products: '商品管理',
-  prices: '報價管理', more: '更多功能',
+  prices: '報價管理', weekly: '每週結算單', more: '更多功能',
 }
 
 function showPage(page) {
@@ -83,6 +83,7 @@ async function loadPage(page) {
     case 'suppliers': await loadSuppliers(); break
     case 'products': await loadProducts(); break
     case 'prices': await loadPrices(); break
+    case 'weekly': await loadWeekly(); break
   }
 }
 
@@ -1676,6 +1677,296 @@ async function savePrice(type) {
   else showToast(res?.error || '失敗', 'error')
 }
 
+// ============================================================
+// === 每週結算單 ===
+// ============================================================
+let weeklyData = null
+
+// 計算本週週一與週日
+function getWeekRange(offsetWeeks = 0) {
+  const now = new Date()
+  const day = now.getDay() || 7          // 週日→7
+  const monday = new Date(now)
+  monday.setDate(now.getDate() - day + 1 + offsetWeeks * 7)
+  const sunday = new Date(monday)
+  sunday.setDate(monday.getDate() + 6)
+  const fmt2 = d => d.toISOString().split('T')[0]
+  return { start: fmt2(monday), end: fmt2(sunday) }
+}
+
+async function loadWeekly() {
+  const el = document.getElementById('weekly-content')
+  if (!el) return
+  const range = getWeekRange(0)  // 本週
+
+  el.innerHTML = `
+  <div class="card p-4 mb-4">
+    <div class="font-bold text-gray-700 mb-4 flex items-center gap-2">
+      <i class="fas fa-receipt text-red-600"></i> 每週結算單產生器
+    </div>
+    <div class="grid grid-cols-1 sm:grid-cols-3 gap-3">
+      <div>
+        <label class="text-sm text-gray-600 mb-1 block">選擇客戶 *</label>
+        <select id="ws-customer" class="input-field" onchange="wsAutoFill()">
+          <option value="">-- 選擇客戶 --</option>
+          ${state.customers.map(c => `<option value="${c.name}">${c.name}</option>`).join('')}
+        </select>
+      </div>
+      <div>
+        <label class="text-sm text-gray-600 mb-1 block">起始日期 *</label>
+        <input type="date" id="ws-start" value="${range.start}" class="input-field">
+      </div>
+      <div>
+        <label class="text-sm text-gray-600 mb-1 block">結束日期 *</label>
+        <input type="date" id="ws-end" value="${range.end}" class="input-field">
+      </div>
+    </div>
+    <!-- 快速週切換 -->
+    <div class="flex gap-2 flex-wrap mt-3">
+      <button onclick="wsSetWeek(-2)" class="btn-secondary text-sm px-3 py-1.5">前二週</button>
+      <button onclick="wsSetWeek(-1)" class="btn-secondary text-sm px-3 py-1.5">上週</button>
+      <button onclick="wsSetWeek(0)"  class="btn-primary  text-sm px-3 py-1.5">本週</button>
+      <button onclick="wsSetWeek(1)"  class="btn-secondary text-sm px-3 py-1.5">下週</button>
+      <div class="flex-1"></div>
+      <button onclick="wsLoad()" class="btn-primary px-5">
+        <i class="fas fa-search mr-1"></i>查詢
+      </button>
+    </div>
+  </div>
+
+  <div id="ws-result"></div>`
+}
+
+function wsSetWeek(offset) {
+  const r = getWeekRange(offset)
+  document.getElementById('ws-start').value = r.start
+  document.getElementById('ws-end').value   = r.end
+}
+
+function wsAutoFill() {
+  // 根據客戶的 payment_cycle 自動判斷查詢範圍（雙週結等）
+  // 這邊維持讓使用者手動選，只是清空結果
+  document.getElementById('ws-result').innerHTML = ''
+  weeklyData = null
+}
+
+async function wsLoad() {
+  const customer = document.getElementById('ws-customer').value
+  const start    = document.getElementById('ws-start').value
+  const end      = document.getElementById('ws-end').value
+  if (!customer) { showToast('請選擇客戶', 'error'); return }
+  if (!start || !end) { showToast('請輸入日期範圍', 'error'); return }
+
+  const el = document.getElementById('ws-result')
+  el.innerHTML = '<div class="text-center py-8 text-gray-400"><i class="fas fa-spinner fa-spin text-2xl"></i></div>'
+
+  const data = await api('GET', `/sales/weekly-statement?customer_name=${encodeURIComponent(customer)}&date_start=${start}&date_end=${end}`)
+  if (!data || data.error) {
+    el.innerHTML = `<div class="card p-4 text-red-500 text-center">${data?.error || '查詢失敗'}</div>`
+    return
+  }
+  weeklyData = data
+  renderStatement(el, data)
+}
+
+function renderStatement(container, data) {
+  const { customer_name, date_start, date_end, items, summary } = data
+  const now = new Date().toLocaleDateString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+
+  // 依日期分組
+  const byDate = {}
+  for (const r of items) {
+    const d = (r.date || '').split('T')[0]
+    if (!byDate[d]) byDate[d] = []
+    byDate[d].push(r)
+  }
+  const dates = Object.keys(byDate).sort()
+
+  const weekdays = ['日','一','二','三','四','五','六']
+  const dayRows = dates.map((d, di) => {
+    const dayItems = byDate[d]
+    const dayTotal = dayItems.reduce((s, r) => s + (r.total_amount || 0), 0)
+    const wd = weekdays[new Date(d).getDay()]
+    return `
+    <tr class="${di % 2 === 0 ? 'statement-row-odd' : 'statement-row-even'}">
+      <td class="p-2 pl-3 text-gray-500 text-sm whitespace-nowrap">${d.slice(5)} (${wd})</td>
+      <td class="p-2">
+        ${dayItems.map(r => `
+          <div class="flex flex-wrap items-baseline gap-x-2 text-sm py-0.5">
+            <span class="font-medium text-gray-800">${r.product_name}</span>
+            ${r.category ? `<span class="statement-badge ${r.category === '生鮮' ? 'badge-fresh' : r.category === '冷凍' ? 'badge-frozen' : 'badge-cooked'}">${r.category}</span>` : ''}
+            <span class="text-gray-500">${r.quantity}${r.qty_unit || r.unit || ''}</span>
+            ${r.spec ? `<span class="text-gray-400 text-xs">${r.spec}${r.unit || ''}</span>` : ''}
+            <span class="text-gray-400 text-xs">×$${fmt(r.unit_price, 0)}</span>
+            <span class="font-semibold text-red-600 ml-auto">$${fmt(r.total_amount, 0)}</span>
+          </div>`).join('')}
+      </td>
+      <td class="p-2 pr-3 text-right font-bold text-gray-800 whitespace-nowrap">$${fmt(dayTotal, 0)}</td>
+    </tr>`
+  }).join('')
+
+  container.innerHTML = `
+  <!-- 結算單卡片（capture-area） -->
+  <div class="capture-area" id="capture-area">
+    <div class="statement-card mb-4" id="statement-card">
+
+      <!-- 標題列 -->
+      <div class="statement-header relative overflow-hidden">
+        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-size:60px;color:rgba(255,255,255,0.06);font-weight:900;white-space:nowrap;pointer-events:none">雞王</div>
+        <div class="flex items-start justify-between relative z-10">
+          <div>
+            <div class="text-xs text-red-200 font-medium mb-0.5">雞王生鮮配送</div>
+            <div class="text-2xl font-bold tracking-wide">週結算單</div>
+            <div class="text-sm text-red-100 mt-1">
+              ${date_start} ～ ${date_end}
+            </div>
+          </div>
+          <div class="text-right">
+            <div class="text-xs text-red-200 mb-1">客戶</div>
+            <div class="text-xl font-bold">${customer_name}</div>
+            <div class="text-xs text-red-200 mt-1">製表：${now}</div>
+          </div>
+        </div>
+        <!-- 統計徽章 -->
+        <div class="flex gap-3 mt-3 pt-3 border-t border-red-500 border-opacity-50">
+          <div class="flex-1 text-center">
+            <div class="text-xs text-red-200">出貨筆數</div>
+            <div class="font-bold text-lg">${summary.count}</div>
+          </div>
+          <div class="flex-1 text-center border-x border-red-500 border-opacity-30">
+            <div class="text-xs text-red-200">已收款</div>
+            <div class="font-bold text-lg text-green-300">$${fmt(summary.paid, 0)}</div>
+          </div>
+          <div class="flex-1 text-center">
+            <div class="text-xs text-red-200">待收款</div>
+            <div class="font-bold text-lg text-yellow-300">$${fmt(summary.unpaid, 0)}</div>
+          </div>
+        </div>
+      </div>
+
+      <!-- 明細表格 -->
+      ${items.length === 0 ? `<div class="p-8 text-center text-gray-400"><i class="fas fa-inbox text-3xl mb-2 block"></i>此期間無出貨記錄</div>` : `
+      <div class="overflow-x-auto">
+        <table class="w-full text-sm">
+          <thead class="table-header">
+            <tr>
+              <th class="p-2 pl-3 text-left text-gray-600 font-semibold whitespace-nowrap">日期</th>
+              <th class="p-2 text-left text-gray-600 font-semibold">品項明細</th>
+              <th class="p-2 pr-3 text-right text-gray-600 font-semibold whitespace-nowrap">日計</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${dayRows}
+          </tbody>
+        </table>
+      </div>
+
+      <!-- 合計列 -->
+      <div class="statement-total-row p-4">
+        <div class="flex items-center justify-between">
+          <div class="font-bold text-gray-800 text-base">
+            <i class="fas fa-calculator text-red-600 mr-2"></i>本期合計
+          </div>
+          <div class="text-2xl font-bold text-red-600">$${fmt(summary.total, 0)}</div>
+        </div>
+        ${summary.unpaid > 0 ? `
+        <div class="mt-2 flex items-center justify-between text-sm">
+          <span class="text-gray-500">尚餘待付款</span>
+          <span class="font-bold text-orange-600">$${fmt(summary.unpaid, 0)}</span>
+        </div>` : `
+        <div class="mt-2 flex items-center gap-2 text-green-600 text-sm font-semibold">
+          <i class="fas fa-check-circle"></i> 本期款項已全數結清
+        </div>`}
+      </div>
+
+      <!-- 底部說明 -->
+      <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex items-center justify-between">
+        <span>如有疑問請聯繫雞王業務</span>
+        <span class="font-mono">Total: $${fmt(summary.total, 0)}</span>
+      </div>
+      `}
+    </div>
+  </div>
+
+  <!-- 操作按鈕（no-print） -->
+  <div class="no-print flex flex-wrap gap-3 justify-center mt-4 pb-6">
+    <button onclick="wsDownloadPNG()" class="btn-primary flex items-center gap-2 px-6 py-3 text-base shadow-lg">
+      <i class="fas fa-download"></i> 下載圖片 (PNG)
+    </button>
+    <button onclick="window.print()" class="btn-secondary flex items-center gap-2 px-5 py-3 text-base">
+      <i class="fas fa-print"></i> 列印
+    </button>
+    <button onclick="wsShare()" id="ws-share-btn" class="btn-secondary flex items-center gap-2 px-5 py-3 text-base">
+      <i class="fas fa-share-alt"></i> 分享
+    </button>
+    ${summary.unpaid > 0 ? `
+    <button onclick="wsMarkPaid()" class="btn-success flex items-center gap-2 px-5 py-3 text-base">
+      <i class="fas fa-check"></i> 標記已收款
+    </button>` : ''}
+  </div>`
+}
+
+async function wsDownloadPNG() {
+  const el = document.getElementById('statement-card')
+  if (!el) { showToast('找不到結算單', 'error'); return }
+  showToast('正在產生圖片...', 'success')
+  try {
+    const canvas = await html2canvas(el, {
+      scale: 2,
+      useCORS: true,
+      backgroundColor: '#ffffff',
+      logging: false,
+    })
+    const link = document.createElement('a')
+    const customer = weeklyData?.customer_name || '客戶'
+    const start    = weeklyData?.date_start || ''
+    const end      = weeklyData?.date_end || ''
+    link.download = `結算單_${customer}_${start}_${end}.png`
+    link.href = canvas.toDataURL('image/png')
+    link.click()
+    showToast('圖片已下載！')
+  } catch (e) {
+    showToast('截圖失敗：' + e.message, 'error')
+  }
+}
+
+async function wsShare() {
+  const el = document.getElementById('statement-card')
+  if (!el) return
+  try {
+    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
+    canvas.toBlob(async (blob) => {
+      if (!blob) { showToast('產生圖片失敗', 'error'); return }
+      const customer = weeklyData?.customer_name || '客戶'
+      const file = new File([blob], `結算單_${customer}.png`, { type: 'image/png' })
+      if (navigator.share && navigator.canShare && navigator.canShare({ files: [file] })) {
+        await navigator.share({ title: `${customer} 週結算單`, files: [file] })
+      } else {
+        // Fallback: 直接下載
+        wsDownloadPNG()
+        showToast('此裝置不支援分享，已改為下載')
+      }
+    }, 'image/png')
+  } catch(e) {
+    if (e.name !== 'AbortError') showToast('分享失敗：' + e.message, 'error')
+  }
+}
+
+async function wsMarkPaid() {
+  if (!weeklyData) return
+  if (!confirm(`確定要將 ${weeklyData.customer_name} 本期 $${fmt(weeklyData.summary.unpaid, 0)} 標記為已收款？`)) return
+  // 找出 items 中待付款的項目，逐一 PATCH
+  const unpaidItems = weeklyData.items.filter(r => !['已付款','已付'].includes(r.payment_status))
+  let ok = 0
+  for (const item of unpaidItems) {
+    const res = await api('PATCH', `/sales/${item.id}/pay`, { status: '已付款' })
+    if (res?.success) ok++
+  }
+  showToast(`已更新 ${ok} 筆為已收款`)
+  wsLoad()  // 重新查詢更新結果
+}
+
+// ============================================================
 // === 初始化 ===
 async function init() {
   // Set today's date

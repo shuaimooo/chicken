@@ -159,6 +159,7 @@ function getIndexHTML(): string {
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
     * { -webkit-tap-highlight-color: transparent; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
@@ -201,6 +202,16 @@ function getIndexHTML(): string {
     ::-webkit-scrollbar-track { background: transparent; }
     ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
     .swipe-close { cursor: pointer; }
+    /* 結算單專屬樣式 */
+    .statement-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
+    .statement-header { background: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%); color: white; padding: 20px 24px; }
+    .statement-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-30deg); font-size: 80px; color: rgba(0,0,0,0.04); font-weight: 900; white-space: nowrap; pointer-events: none; }
+    .statement-row-odd { background: #fafafa; }
+    .statement-row-even { background: white; }
+    .statement-total-row { background: linear-gradient(135deg, #fef2f2, #fee2e2); border-top: 2px solid #dc2626; }
+    .statement-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .capture-area { position: relative; }
+    @media print { .no-print { display: none !important; } body { background: white; } }
   </style>
 </head>
 <body class="bg-gray-50 min-h-screen">
@@ -216,8 +227,8 @@ function getIndexHTML(): string {
   <button onclick="showPage('purchases')" id="nav-purchases" class="flex flex-col items-center py-1 px-2 rounded-lg text-gray-500 nav-mobile-btn">
     <i class="fas fa-shopping-cart text-lg"></i><span class="text-xs mt-0.5">進貨</span>
   </button>
-  <button onclick="showPage('finance')" id="nav-finance" class="flex flex-col items-center py-1 px-2 rounded-lg text-gray-500 nav-mobile-btn">
-    <i class="fas fa-wallet text-lg"></i><span class="text-xs mt-0.5">財務</span>
+  <button onclick="showPage('weekly')" id="nav-finance" class="flex flex-col items-center py-1 px-2 rounded-lg text-gray-500 nav-mobile-btn">
+    <i class="fas fa-receipt text-lg"></i><span class="text-xs mt-0.5">結算單</span>
   </button>
   <button onclick="showPage('more')" id="nav-more" class="flex flex-col items-center py-1 px-2 rounded-lg text-gray-500 nav-mobile-btn">
     <i class="fas fa-bars text-lg"></i><span class="text-xs mt-0.5">更多</span>
@@ -245,6 +256,9 @@ function getIndexHTML(): string {
       <div class="text-red-300 text-xs font-semibold px-3 pt-3 pb-1">銷售管理</div>
       <button onclick="showPage('sales')" id="side-sales" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
         <i class="fas fa-truck w-5"></i><span>出貨記錄</span>
+      </button>
+      <button onclick="showPage('weekly')" id="side-weekly" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
+        <i class="fas fa-receipt w-5"></i><span>每週結算單</span>
       </button>
       <button onclick="showPage('receivables')" id="side-receivables" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
         <i class="fas fa-hand-holding-usd w-5"></i><span>應收帳款</span>
@@ -370,9 +384,18 @@ function getIndexHTML(): string {
         <div id="prices-content"></div>
       </div>
 
+      <!-- Weekly Statement -->
+      <div id="page-weekly" class="page">
+        <div id="weekly-content"></div>
+      </div>
+
       <!-- More (mobile) -->
       <div id="page-more" class="page">
         <div class="grid grid-cols-2 gap-3">
+          <button onclick="showPage('weekly')" class="card p-4 flex flex-col items-center gap-2 text-center" style="border: 2px solid #dc2626">
+            <i class="fas fa-receipt text-2xl text-red-600"></i>
+            <span class="text-sm font-medium text-red-600 font-bold">每週結算單</span>
+          </button>
           <button onclick="showPage('receivables')" class="card p-4 flex flex-col items-center gap-2 text-center">
             <i class="fas fa-hand-holding-usd text-2xl text-green-600"></i>
             <span class="text-sm font-medium">應收帳款</span>
