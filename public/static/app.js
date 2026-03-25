@@ -20,10 +20,12 @@ const monthStr = (m) => ['一','二','三','四','五','六','七','八','九','
 function showToast(msg, type = 'success') {
   const el = document.getElementById('toast')
   const inner = el.querySelector('div')
-  inner.className = `px-4 py-3 rounded-lg shadow-lg text-sm max-w-xs ${type === 'success' ? 'bg-gray-800' : 'bg-red-600'} text-white`
-  inner.textContent = msg
-  el.classList.remove('hidden')
-  setTimeout(() => el.classList.add('hidden'), 2500)
+  const icon = type === 'success' ? '✓' : '⚠'
+  inner.style.background = type === 'success' ? '#1e293b' : '#dc2626'
+  inner.innerHTML = `<span style="font-size:15px">${icon}</span><span>${msg}</span>`
+  el.style.display = 'block'
+  clearTimeout(el._t)
+  el._t = setTimeout(() => { el.style.display = 'none' }, 2800)
 }
 
 async function api(method, path, data = null) {
@@ -60,9 +62,10 @@ const pageNames = {
 function showPage(page) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'))
   document.getElementById(`page-${page}`)?.classList.add('active')
-  document.querySelectorAll('.nav-item, .nav-mobile-btn').forEach(el => el.classList.remove('active'))
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'))
+  document.querySelectorAll('.nav-mobile-btn').forEach(el => el.classList.remove('active'))
   document.getElementById(`side-${page}`)?.classList.add('active')
-  document.getElementById(`nav-${page}`)?.classList.add('active', '!text-red-600')
+  document.getElementById(`nav-${page}`)?.classList.add('active')
   document.getElementById('page-title').textContent = pageNames[page] || page
   state.currentPage = page
   loadPage(page)
@@ -109,78 +112,80 @@ async function loadDashboard() {
 
   el.innerHTML = `
   <!-- KPI Cards -->
-  <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-    <div class="kpi-card" style="background:linear-gradient(135deg,#dc2626,#b91c1c)">
-      <div class="text-xs opacity-80 mb-1">今日出貨</div>
-      <div class="text-xl font-bold">$${fmt(data.today.sales_amount)}</div>
-      <div class="text-xs opacity-80">${data.today.sales_count} 筆</div>
+  <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:14px;" class="md:grid-cols-4">
+    <div class="kpi-card" style="background:linear-gradient(135deg,#e63946,#c1121f)">
+      <div class="kpi-label"><i class="fas fa-truck" style="margin-right:4px"></i>今日出貨</div>
+      <div class="kpi-value">$${fmt(data.today.sales_amount)}</div>
+      <div class="kpi-sub">${data.today.sales_count} 筆紀錄</div>
     </div>
-    <div class="kpi-card" style="background:linear-gradient(135deg,#16a34a,#15803d)">
-      <div class="text-xs opacity-80 mb-1">本月營收</div>
-      <div class="text-xl font-bold">$${fmt(data.month.revenue)}</div>
-      <div class="text-xs opacity-80">毛利率 ${data.month.gross_margin}%</div>
+    <div class="kpi-card" style="background:linear-gradient(135deg,#10b981,#059669)">
+      <div class="kpi-label"><i class="fas fa-chart-line" style="margin-right:4px"></i>本月營收</div>
+      <div class="kpi-value">$${fmt(data.month.revenue)}</div>
+      <div class="kpi-sub">毛利率 ${data.month.gross_margin}%</div>
     </div>
-    <div class="kpi-card" style="background:linear-gradient(135deg,#d97706,#b45309)">
-      <div class="text-xs opacity-80 mb-1">應收帳款</div>
-      <div class="text-xl font-bold">$${fmt(data.receivable)}</div>
-      <div class="text-xs opacity-80">待收款</div>
+    <div class="kpi-card" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
+      <div class="kpi-label"><i class="fas fa-hand-holding-usd" style="margin-right:4px"></i>應收帳款</div>
+      <div class="kpi-value">$${fmt(data.receivable)}</div>
+      <div class="kpi-sub">待收款項</div>
     </div>
-    <div class="kpi-card" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)">
-      <div class="text-xs opacity-80 mb-1">年度達成</div>
-      <div class="text-xl font-bold">${data.year.achievement}%</div>
-      <div class="text-xs opacity-80">$${fmt(data.year.revenue)} / $${fmt(data.year.target)}</div>
+    <div class="kpi-card" style="background:linear-gradient(135deg,#6366f1,#4f46e5)">
+      <div class="kpi-label"><i class="fas fa-bullseye" style="margin-right:4px"></i>年度達成</div>
+      <div class="kpi-value">${data.year.achievement}%</div>
+      <div class="kpi-sub">$${fmt(data.year.revenue)} / $${fmt(data.year.target)}</div>
     </div>
   </div>
 
-  <!-- 本月損益 & 現金流 -->
-  <div class="grid grid-cols-1 md:grid-cols-2 gap-3 mb-4">
-    <div class="card p-4">
-      <div class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-        <i class="fas fa-chart-line text-green-600"></i> 本月損益
+  <!-- 本月損益 & 資金狀況 -->
+  <div style="display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:14px;" class="md:grid-cols-2">
+    <div class="card" style="padding:18px 20px;">
+      <div style="font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; gap:8px; font-size:14px;">
+        <span style="width:32px;height:32px;background:#ecfdf5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;"><i class="fas fa-chart-line" style="color:#10b981"></i></span>
+        本月損益
       </div>
-      <div class="space-y-2">
-        <div class="flex justify-between items-center py-1 border-b border-gray-100">
-          <span class="text-gray-600 text-sm">營業收入</span>
-          <span class="font-semibold amount-positive">+$${fmt(data.month.revenue)}</span>
+      <div style="display:flex; flex-direction:column; gap:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:13.5px;color:var(--muted)">營業收入</span>
+          <span class="amount-positive" style="font-size:14px;">+$${fmt(data.month.revenue)}</span>
         </div>
-        <div class="flex justify-between items-center py-1 border-b border-gray-100">
-          <span class="text-gray-600 text-sm">進貨成本</span>
-          <span class="font-semibold amount-negative">-$${fmt(data.month.cost)}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:13.5px;color:var(--muted)">進貨成本</span>
+          <span class="amount-negative" style="font-size:14px;">-$${fmt(data.month.cost)}</span>
         </div>
-        <div class="flex justify-between items-center py-1 border-b border-gray-100">
-          <span class="text-gray-600 text-sm">費用支出</span>
-          <span class="font-semibold amount-negative">-$${fmt(data.month.expense)}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:13.5px;color:var(--muted)">費用支出</span>
+          <span class="amount-negative" style="font-size:14px;">-$${fmt(data.month.expense)}</span>
         </div>
-        <div class="flex justify-between items-center py-2">
-          <span class="font-bold text-gray-800">月度淨利</span>
-          <span class="font-bold text-lg ${data.month.net >= 0 ? 'amount-positive' : 'amount-negative'}">$${fmt(data.month.net)}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;">
+          <span style="font-weight:700;color:var(--text);">月度淨利</span>
+          <span style="font-weight:800;font-size:20px;" class="${data.month.net >= 0 ? 'amount-positive' : 'amount-negative'}">$${fmt(data.month.net)}</span>
         </div>
       </div>
     </div>
-    <div class="card p-4">
-      <div class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-        <i class="fas fa-balance-scale text-blue-600"></i> 資金狀況
+    <div class="card" style="padding:18px 20px;">
+      <div style="font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; gap:8px; font-size:14px;">
+        <span style="width:32px;height:32px;background:#eff6ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;"><i class="fas fa-balance-scale" style="color:#3b82f6"></i></span>
+        資金狀況
       </div>
-      <div class="space-y-2">
-        <div class="flex justify-between items-center py-1 border-b border-gray-100">
-          <span class="text-gray-600 text-sm">應收帳款</span>
-          <span class="font-semibold text-green-600">$${fmt(data.receivable)}</span>
+      <div style="display:flex; flex-direction:column; gap:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:13.5px;color:var(--muted)">應收帳款</span>
+          <span style="font-weight:700;color:var(--success);">$${fmt(data.receivable)}</span>
         </div>
-        <div class="flex justify-between items-center py-1 border-b border-gray-100">
-          <span class="text-gray-600 text-sm">待付帳款</span>
-          <span class="font-semibold text-red-600">$${fmt(data.payable)}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:13.5px;color:var(--muted)">待付帳款</span>
+          <span style="font-weight:700;color:var(--brand);">$${fmt(data.payable)}</span>
         </div>
-        <div class="flex justify-between items-center py-1 border-b border-gray-100">
-          <span class="text-gray-600 text-sm">資金缺口</span>
-          <span class="font-semibold ${data.cash_gap >= 0 ? 'text-green-600' : 'text-red-600'}">$${fmt(data.cash_gap)}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size:13.5px;color:var(--muted)">資金缺口</span>
+          <span style="font-weight:700;color:${data.cash_gap >= 0 ? 'var(--success)' : 'var(--brand)'};">$${fmt(data.cash_gap)}</span>
         </div>
-        <div class="flex justify-between items-center py-2">
-          <span class="font-bold text-gray-800">年度達成率</span>
-          <div class="flex items-center gap-2">
-            <div class="w-24 h-2 bg-gray-200 rounded-full overflow-hidden">
-              <div class="h-full bg-red-500 rounded-full" style="width:${Math.min(100,data.year.achievement)}%"></div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;">
+          <span style="font-weight:700;color:var(--text);">年度達成率</span>
+          <div style="display:flex;align-items:center;gap:8px;">
+            <div style="width:80px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
+              <div style="height:100%;background:var(--brand);border-radius:3px;width:${Math.min(100,data.year.achievement)}%;"></div>
             </div>
-            <span class="font-bold">${data.year.achievement}%</span>
+            <span style="font-weight:800;font-size:16px;">${data.year.achievement}%</span>
           </div>
         </div>
       </div>
@@ -188,36 +193,40 @@ async function loadDashboard() {
   </div>
 
   <!-- 月度趨勢圖 -->
-  <div class="card p-4 mb-4">
-    <div class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-      <i class="fas fa-chart-bar text-red-500"></i> 月度營收趨勢
+  <div class="card" style="padding:18px 20px; margin-bottom:14px;">
+    <div style="font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; gap:8px; font-size:14px;">
+      <span style="width:32px;height:32px;background:#fef2f2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;"><i class="fas fa-chart-bar" style="color:var(--brand)"></i></span>
+      月度營收趨勢
     </div>
-    <canvas id="chart-monthly" height="80"></canvas>
+    <canvas id="chart-monthly" height="70"></canvas>
   </div>
 
   <!-- 最近出貨 -->
-  <div class="card p-4">
-    <div class="font-bold text-gray-700 mb-3 flex items-center justify-between">
-      <div class="flex items-center gap-2"><i class="fas fa-truck text-gray-500"></i> 最近出貨</div>
-      <button onclick="showPage('sales')" class="text-red-600 text-sm">查看全部 ></button>
+  <div class="card" style="padding:18px 20px;">
+    <div style="font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; font-size:14px;">
+      <div style="display:flex;align-items:center;gap:8px;">
+        <span style="width:32px;height:32px;background:#f8fafc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;"><i class="fas fa-truck" style="color:var(--muted)"></i></span>
+        最近出貨
+      </div>
+      <button onclick="showPage('sales')" style="font-size:12.5px;color:var(--brand);background:none;border:none;cursor:pointer;font-weight:600;">查看全部 →</button>
     </div>
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
+    <div style="overflow-x:auto;">
+      <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
         <thead class="table-header"><tr>
-          <th class="text-left p-2">日期</th>
-          <th class="text-left p-2">客戶</th>
-          <th class="text-left p-2 hidden sm:table-cell">商品</th>
-          <th class="text-right p-2">金額</th>
-          <th class="text-center p-2">狀態</th>
+          <th style="text-align:left;padding:8px 10px;white-space:nowrap;">日期</th>
+          <th style="text-align:left;padding:8px 10px;">客戶</th>
+          <th style="text-align:left;padding:8px 10px;display:none;" class="sm-show">商品</th>
+          <th style="text-align:right;padding:8px 10px;white-space:nowrap;">金額</th>
+          <th style="text-align:center;padding:8px 10px;white-space:nowrap;">狀態</th>
         </tr></thead>
         <tbody>
           ${(data.recent_sales || []).map(s => `
-          <tr class="border-b border-gray-50">
-            <td class="p-2 text-gray-500">${fmtDate(s.date)}</td>
-            <td class="p-2 font-medium">${s.customer_name}</td>
-            <td class="p-2 text-gray-600 hidden sm:table-cell">${s.product_name}</td>
-            <td class="p-2 text-right font-semibold">$${fmt(s.total_amount)}</td>
-            <td class="p-2 text-center"><span class="${getStatusClass(s.payment_status)}">${s.payment_status}</span></td>
+          <tr style="border-bottom:1px solid #f1f5f9;">
+            <td style="padding:9px 10px;color:var(--muted);font-size:12.5px;white-space:nowrap;">${fmtDate(s.date)}</td>
+            <td style="padding:9px 10px;font-weight:600;color:var(--text);">${s.customer_name}</td>
+            <td style="padding:9px 10px;color:var(--muted);">${s.product_name}</td>
+            <td style="padding:9px 10px;text-align:right;font-weight:700;">$${fmt(s.total_amount)}</td>
+            <td style="padding:9px 10px;text-align:center;"><span class="${getStatusClass(s.payment_status)}">${s.payment_status}</span></td>
           </tr>`).join('')}
         </tbody>
       </table>
@@ -240,14 +249,21 @@ async function loadDashboard() {
         datasets: [{
           label: '營收',
           data: values,
-          backgroundColor: values.map((v, i) => i === state.month - 1 ? '#dc2626' : '#fca5a5'),
-          borderRadius: 6,
+          backgroundColor: values.map((v, i) => i === state.month - 1 ? '#e63946' : 'rgba(230,57,70,.18)'),
+          borderRadius: 8,
+          borderSkipped: false,
         }]
       },
       options: {
         responsive: true,
-        plugins: { legend: { display: false }, tooltip: { callbacks: { label: ctx => '$' + fmt(ctx.raw) } } },
-        scales: { y: { ticks: { callback: v => '$' + fmt(v) } } }
+        plugins: {
+          legend: { display: false },
+          tooltip: { callbacks: { label: ctx => ' $' + fmt(ctx.raw) }, backgroundColor: '#1e293b', padding: 10, cornerRadius: 8 }
+        },
+        scales: {
+          y: { ticks: { callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0)+'K' : v), font: { size: 11 } }, grid: { color: '#f1f5f9' } },
+          x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+        }
       }
     })
   }

@@ -161,290 +161,556 @@ function getIndexHTML(): string {
   <script src="https://cdn.jsdelivr.net/npm/dayjs@1.11.10/dayjs.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/html2canvas@1.4.1/dist/html2canvas.min.js"></script>
   <style>
-    * { -webkit-tap-highlight-color: transparent; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; }
-    .nav-item.active { background: rgba(255,255,255,0.2); }
-    .card { background: white; border-radius: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
-    .btn-primary { background: #dc2626; color: white; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-primary:hover { background: #b91c1c; }
-    .btn-secondary { background: #f3f4f6; color: #374151; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-secondary:hover { background: #e5e7eb; }
-    .btn-success { background: #16a34a; color: white; border-radius: 8px; padding: 8px 16px; font-weight: 600; cursor: pointer; transition: all 0.2s; }
-    .btn-success:hover { background: #15803d; }
-    .input-field { border: 1px solid #d1d5db; border-radius: 8px; padding: 8px 12px; width: 100%; font-size: 16px; outline: none; transition: border-color 0.2s; }
-    .input-field:focus { border-color: #dc2626; box-shadow: 0 0 0 3px rgba(220,38,38,0.1); }
-    select.input-field { background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e"); background-position: right 8px center; background-repeat: no-repeat; background-size: 16px; appearance: none; }
-    .table-header { background: #fef2f2; }
-    .status-paid { background: #dcfce7; color: #166534; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-    .status-unpaid { background: #fee2e2; color: #991b1b; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-    .status-partial { background: #fef3c7; color: #92400e; padding: 2px 8px; border-radius: 12px; font-size: 12px; font-weight: 600; }
-    .modal-overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.5); z-index: 50; display: flex; align-items: flex-end; justify-content: center; }
+    /* ─── 設計系統 ─── */
+    :root {
+      --brand:      #e63946;
+      --brand-dk:   #c1121f;
+      --brand-lt:   #ff6b6b;
+      --sidebar-bg: #0f172a;
+      --sidebar-w:  252px;
+      --accent:     #f59e0b;
+      --success:    #10b981;
+      --info:       #3b82f6;
+      --surface:    #ffffff;
+      --bg:         #f1f5f9;
+      --border:     #e2e8f0;
+      --text:       #1e293b;
+      --muted:      #64748b;
+      --radius:     14px;
+      --shadow-sm:  0 1px 3px rgba(0,0,0,.06), 0 1px 2px rgba(0,0,0,.04);
+      --shadow:     0 4px 16px rgba(0,0,0,.08), 0 2px 6px rgba(0,0,0,.04);
+      --shadow-lg:  0 20px 48px rgba(0,0,0,.12), 0 8px 16px rgba(0,0,0,.06);
+    }
+
+    /* ─── Reset & Base ─── */
+    *, *::before, *::after { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+    body {
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'PingFang TC', 'Noto Sans TC', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      margin: 0;
+    }
+
+    /* ─── Sidebar ─── */
+    .sidebar {
+      width: var(--sidebar-w);
+      background: var(--sidebar-bg);
+      flex-shrink: 0;
+    }
+    .sidebar-logo {
+      padding: 20px 16px 16px;
+      border-bottom: 1px solid rgba(255,255,255,.07);
+      display: flex;
+      align-items: center;
+      gap: 12px;
+    }
+    .logo-icon {
+      width: 42px; height: 42px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dk));
+      border-radius: 12px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px; font-weight: 900; color: white;
+      box-shadow: 0 4px 12px rgba(230,57,70,.4);
+      flex-shrink: 0;
+    }
+    .logo-text { line-height: 1.2; }
+    .logo-text .name  { font-size: 17px; font-weight: 800; color: #fff; letter-spacing: .5px; }
+    .logo-text .sub   { font-size: 11px; color: #64748b; margin-top: 1px; }
+
+    .nav-section-label {
+      font-size: 10px; font-weight: 700; letter-spacing: 1.2px;
+      color: #475569; text-transform: uppercase;
+      padding: 18px 16px 6px;
+    }
+    .nav-item {
+      display: flex; align-items: center; gap: 10px;
+      width: 100%; text-align: left;
+      padding: 9px 12px; margin: 1px 6px;
+      width: calc(100% - 12px);
+      border-radius: 10px;
+      font-size: 13.5px; font-weight: 500;
+      color: #94a3b8;
+      cursor: pointer;
+      transition: all .18s ease;
+      border: none; background: none;
+    }
+    .nav-item:hover { background: rgba(255,255,255,.06); color: #cbd5e1; }
+    .nav-item.active {
+      background: linear-gradient(90deg, rgba(230,57,70,.18), rgba(230,57,70,.08));
+      color: #fff;
+      box-shadow: inset 3px 0 0 var(--brand);
+    }
+    .nav-item .icon-wrap {
+      width: 28px; height: 28px;
+      border-radius: 8px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 13px;
+      background: rgba(255,255,255,.05);
+      transition: all .18s;
+      flex-shrink: 0;
+    }
+    .nav-item.active .icon-wrap { background: var(--brand); box-shadow: 0 3px 8px rgba(230,57,70,.5); color: white; }
+    .nav-item:hover .icon-wrap { background: rgba(255,255,255,.1); }
+
+    /* ─── Top Header ─── */
+    .top-header {
+      background: var(--surface);
+      border-bottom: 1px solid var(--border);
+      padding: 0 20px;
+      height: 60px;
+      display: flex; align-items: center; justify-content: space-between;
+      position: sticky; top: 0; z-index: 20;
+      box-shadow: var(--shadow-sm);
+    }
+    .page-title-area { display: flex; align-items: center; gap: 10px; }
+    .mobile-logo {
+      width: 34px; height: 34px;
+      background: linear-gradient(135deg, var(--brand), var(--brand-dk));
+      border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 16px; font-weight: 900; color: white;
+    }
+    #page-title { font-size: 17px; font-weight: 700; color: var(--text); }
+    .header-right { display: flex; align-items: center; gap: 10px; }
+    .date-chip {
+      font-size: 12px; color: var(--muted);
+      background: var(--bg); border-radius: 20px;
+      padding: 4px 10px;
+    }
+
+    /* ─── Buttons ─── */
+    .btn-primary {
+      background: linear-gradient(135deg, var(--brand), var(--brand-dk));
+      color: white; border-radius: 10px; padding: 8px 18px;
+      font-weight: 600; font-size: 13.5px; cursor: pointer;
+      border: none; transition: all .2s;
+      box-shadow: 0 4px 12px rgba(230,57,70,.3);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-primary:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(230,57,70,.4); }
+    .btn-primary:active { transform: translateY(0); }
+    .btn-secondary {
+      background: var(--surface); color: var(--text);
+      border: 1px solid var(--border);
+      border-radius: 10px; padding: 8px 16px;
+      font-weight: 600; font-size: 13.5px; cursor: pointer;
+      transition: all .2s;
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-secondary:hover { background: var(--bg); border-color: #cbd5e1; }
+    .btn-success {
+      background: linear-gradient(135deg, #10b981, #059669);
+      color: white; border-radius: 10px; padding: 8px 16px;
+      font-weight: 600; font-size: 13.5px; cursor: pointer;
+      border: none; transition: all .2s;
+      box-shadow: 0 4px 12px rgba(16,185,129,.3);
+      display: inline-flex; align-items: center; gap: 6px;
+    }
+    .btn-success:hover { transform: translateY(-1px); box-shadow: 0 6px 18px rgba(16,185,129,.4); }
+
+    /* ─── Cards ─── */
+    .card {
+      background: var(--surface);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow-sm);
+      border: 1px solid var(--border);
+    }
+    .card-hover:hover { box-shadow: var(--shadow); transform: translateY(-2px); transition: all .2s; }
+
+    /* ─── KPI Cards ─── */
+    .kpi-card {
+      border-radius: 16px; padding: 18px 20px;
+      color: white; position: relative; overflow: hidden;
+    }
+    .kpi-card::before {
+      content: ''; position: absolute;
+      top: -30%; right: -10%;
+      width: 100px; height: 100px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.1);
+    }
+    .kpi-card::after {
+      content: ''; position: absolute;
+      bottom: -40%; right: 10%;
+      width: 70px; height: 70px;
+      border-radius: 50%;
+      background: rgba(255,255,255,.06);
+    }
+    .kpi-label { font-size: 11px; opacity: .8; font-weight: 500; letter-spacing: .5px; margin-bottom: 6px; }
+    .kpi-value { font-size: 22px; font-weight: 800; letter-spacing: -.5px; position: relative; z-index: 1; }
+    .kpi-sub   { font-size: 11px; opacity: .75; margin-top: 4px; position: relative; z-index: 1; }
+
+    /* ─── Input ─── */
+    .input-field {
+      border: 1.5px solid var(--border);
+      border-radius: 10px;
+      padding: 9px 13px;
+      width: 100%; font-size: 15px;
+      outline: none;
+      background: var(--surface);
+      color: var(--text);
+      transition: border-color .2s, box-shadow .2s;
+    }
+    .input-field:focus {
+      border-color: var(--brand);
+      box-shadow: 0 0 0 3px rgba(230,57,70,.1);
+    }
+    select.input-field {
+      background-image: url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%2394a3b8' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e");
+      background-position: right 10px center;
+      background-repeat: no-repeat;
+      background-size: 16px;
+      appearance: none; padding-right: 34px;
+    }
+
+    /* ─── Table ─── */
+    .table-header { background: #f8fafc; }
+    .table-header th {
+      font-size: 11px; font-weight: 700;
+      letter-spacing: .6px; text-transform: uppercase;
+      color: var(--muted); padding: 10px 12px;
+    }
+    tbody tr { border-bottom: 1px solid #f1f5f9; }
+    tbody tr:hover { background: #fafbfc; }
+    tbody tr:last-child { border-bottom: none; }
+
+    /* ─── Status Badges ─── */
+    .status-paid    { background: #ecfdf5; color: #065f46; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .status-unpaid  { background: #fef2f2; color: #991b1b; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .status-partial { background: #fffbeb; color: #92400e; padding: 3px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .badge-fresh  { background: #ecfdf5; color: #065f46; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .badge-frozen { background: #eff6ff; color: #1e40af; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+    .badge-cooked { background: #fffbeb; color: #92400e; padding: 2px 8px; border-radius: 20px; font-size: 11px; font-weight: 700; display: inline-block; }
+
+    /* ─── Amount Colors ─── */
+    .amount-positive { color: var(--success); font-weight: 700; }
+    .amount-negative { color: var(--brand); font-weight: 700; }
+
+    /* ─── Tabs ─── */
+    .tab-btn {
+      padding: 7px 16px; border-radius: 8px;
+      cursor: pointer; font-size: 13.5px; font-weight: 500;
+      color: var(--muted); transition: all .2s; border: none; background: none;
+    }
+    .tab-btn.active { background: var(--brand); color: white; box-shadow: 0 3px 10px rgba(230,57,70,.3); }
+
+    /* ─── Modal ─── */
+    .modal-overlay {
+      position: fixed; inset: 0;
+      background: rgba(15,23,42,.6);
+      backdrop-filter: blur(4px);
+      z-index: 50; display: flex;
+      align-items: flex-end; justify-content: center;
+    }
     @media (min-width: 640px) { .modal-overlay { align-items: center; } }
-    .modal-box { background: white; width: 100%; max-width: 600px; border-radius: 16px 16px 0 0; padding: 20px; max-height: 90vh; overflow-y: auto; }
-    @media (min-width: 640px) { .modal-box { border-radius: 16px; } }
-    .sidebar { width: 240px; flex-shrink: 0; }
-    @media (max-width: 767px) { .sidebar { display: none; } .mobile-nav { display: flex; } }
-    @media (min-width: 768px) { .mobile-nav { display: none; } }
-    .loading { display: inline-block; width: 20px; height: 20px; border: 3px solid rgba(255,255,255,.3); border-radius: 50%; border-top-color: #fff; animation: spin 1s ease-in-out infinite; }
-    @keyframes spin { to { transform: rotate(360deg); } }
-    .kpi-card { border-radius: 12px; padding: 16px; color: white; }
-    .badge-fresh { background: #dcfce7; color: #166534; }
-    .badge-frozen { background: #dbeafe; color: #1e40af; }
-    .badge-cooked { background: #fef3c7; color: #92400e; }
-    tbody tr:hover { background: #fafafa; }
+    .modal-box {
+      background: var(--surface);
+      width: 100%; max-width: 600px;
+      border-radius: 20px 20px 0 0;
+      padding: 24px 20px;
+      max-height: 92vh; overflow-y: auto;
+      box-shadow: var(--shadow-lg);
+    }
+    @media (min-width: 640px) { .modal-box { border-radius: 20px; } }
+    .modal-handle {
+      width: 36px; height: 4px;
+      background: #cbd5e1; border-radius: 2px;
+      margin: 0 auto 16px;
+    }
+
+    /* ─── Mobile Bottom Nav ─── */
+    .mobile-nav {
+      position: fixed; bottom: 0; left: 0; right: 0;
+      background: var(--surface);
+      border-top: 1px solid var(--border);
+      z-index: 40; padding: 6px 4px 8px;
+      display: grid; grid-template-columns: repeat(5, 1fr);
+      gap: 2px;
+      box-shadow: 0 -4px 20px rgba(0,0,0,.06);
+    }
+    .nav-mobile-btn {
+      display: flex; flex-direction: column;
+      align-items: center; justify-content: center;
+      gap: 2px; padding: 6px 2px;
+      border-radius: 10px; border: none;
+      background: none; color: #94a3b8;
+      cursor: pointer; transition: all .18s;
+      font-size: 10px; font-weight: 500;
+    }
+    .nav-mobile-btn i { font-size: 20px; transition: all .18s; }
+    .nav-mobile-btn.active { color: var(--brand); }
+    .nav-mobile-btn.active i { transform: translateY(-2px); }
+    .nav-mobile-active-dot {
+      width: 4px; height: 4px; border-radius: 50%;
+      background: var(--brand); margin-top: 1px;
+      display: none;
+    }
+    .nav-mobile-btn.active .nav-mobile-active-dot { display: block; }
+
+    /* ─── Layout ─── */
+    @media (max-width: 767px) {
+      .sidebar { display: none !important; }
+      .mobile-nav { display: grid; }
+    }
+    @media (min-width: 768px) {
+      .mobile-nav { display: none !important; }
+    }
+
+    /* ─── Misc ─── */
     .page { display: none; }
     .page.active { display: block; }
-    .tab-btn { padding: 8px 16px; border-radius: 8px; cursor: pointer; font-size: 14px; font-weight: 500; color: #6b7280; transition: all 0.2s; }
-    .tab-btn.active { background: #dc2626; color: white; }
-    .amount-positive { color: #16a34a; font-weight: 600; }
-    .amount-negative { color: #dc2626; font-weight: 600; }
+    .loading {
+      display: inline-block; width: 18px; height: 18px;
+      border: 2.5px solid rgba(255,255,255,.3);
+      border-radius: 50%; border-top-color: #fff;
+      animation: spin 1s ease-in-out infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
     ::-webkit-scrollbar { width: 4px; height: 4px; }
     ::-webkit-scrollbar-track { background: transparent; }
-    ::-webkit-scrollbar-thumb { background: #d1d5db; border-radius: 2px; }
-    .swipe-close { cursor: pointer; }
-    /* 結算單專屬樣式 */
-    .statement-card { background: white; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0,0,0,0.12); }
-    .statement-header { background: linear-gradient(135deg, #b91c1c 0%, #dc2626 50%, #ef4444 100%); color: white; padding: 20px 24px; }
-    .statement-watermark { position: absolute; top: 50%; left: 50%; transform: translate(-50%,-50%) rotate(-30deg); font-size: 80px; color: rgba(0,0,0,0.04); font-weight: 900; white-space: nowrap; pointer-events: none; }
-    .statement-row-odd { background: #fafafa; }
+    ::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 4px; }
+
+    /* ─── Statement Card ─── */
+    .statement-card { background: white; border-radius: 18px; overflow: hidden; box-shadow: var(--shadow-lg); }
+    .statement-header {
+      background: linear-gradient(135deg, #0f172a 0%, #1e293b 50%, #0f172a 100%);
+      color: white; padding: 22px 24px;
+      position: relative; overflow: hidden;
+    }
+    .statement-header::before {
+      content: ''; position: absolute;
+      top: -50%; right: -15%;
+      width: 200px; height: 200px;
+      border-radius: 50%;
+      background: radial-gradient(circle, rgba(230,57,70,.25), transparent 70%);
+    }
+    .statement-row-odd  { background: #f8fafc; }
     .statement-row-even { background: white; }
-    .statement-total-row { background: linear-gradient(135deg, #fef2f2, #fee2e2); border-top: 2px solid #dc2626; }
-    .statement-badge { display: inline-block; padding: 2px 10px; border-radius: 20px; font-size: 11px; font-weight: 700; }
+    .statement-total-row {
+      background: linear-gradient(135deg, #0f172a, #1e293b);
+      color: white;
+    }
+    .statement-badge { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 11px; font-weight: 700; }
     .capture-area { position: relative; }
     @media print { .no-print { display: none !important; } body { background: white; } }
+
+    /* ─── More Page Grid ─── */
+    .more-grid-item {
+      background: var(--surface);
+      border-radius: 14px;
+      border: 1px solid var(--border);
+      padding: 18px 12px;
+      display: flex; flex-direction: column;
+      align-items: center; gap: 10px;
+      cursor: pointer; transition: all .2s;
+      box-shadow: var(--shadow-sm);
+    }
+    .more-grid-item:hover { box-shadow: var(--shadow); transform: translateY(-2px); }
+    .more-grid-item.featured {
+      border-color: var(--brand);
+      background: linear-gradient(135deg, #fff5f5, #fff);
+    }
+    .more-icon-wrap {
+      width: 48px; height: 48px;
+      border-radius: 14px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 20px;
+    }
   </style>
 </head>
-<body class="bg-gray-50 min-h-screen">
+<body>
 
 <!-- Mobile Bottom Nav -->
-<div class="mobile-nav fixed bottom-0 left-0 right-0 bg-white border-t border-gray-200 z-40 px-1 py-2 grid grid-cols-5 gap-1">
-  <button onclick="showPage('dashboard')" id="nav-dashboard" class="flex flex-col items-center py-1 px-2 rounded-lg text-gray-500 nav-mobile-btn">
-    <i class="fas fa-chart-pie text-lg"></i><span class="text-xs mt-0.5">儀表板</span>
+<div class="mobile-nav" id="mobile-nav">
+  <button onclick="showPage('dashboard')" id="nav-dashboard" class="nav-mobile-btn">
+    <i class="fas fa-chart-pie"></i><span>儀表板</span>
+    <div class="nav-mobile-active-dot"></div>
   </button>
-  <button onclick="showPage('sales')" id="nav-sales" class="flex flex-col items-center py-1 px-2 rounded-lg text-gray-500 nav-mobile-btn">
-    <i class="fas fa-truck text-lg"></i><span class="text-xs mt-0.5">出貨</span>
+  <button onclick="showPage('sales')" id="nav-sales" class="nav-mobile-btn">
+    <i class="fas fa-truck"></i><span>出貨</span>
+    <div class="nav-mobile-active-dot"></div>
   </button>
-  <button onclick="showPage('purchases')" id="nav-purchases" class="flex flex-col items-center py-1 px-2 rounded-lg text-gray-500 nav-mobile-btn">
-    <i class="fas fa-shopping-cart text-lg"></i><span class="text-xs mt-0.5">進貨</span>
+  <button onclick="showPage('purchases')" id="nav-purchases" class="nav-mobile-btn">
+    <i class="fas fa-shopping-cart"></i><span>進貨</span>
+    <div class="nav-mobile-active-dot"></div>
   </button>
-  <button onclick="showPage('weekly')" id="nav-finance" class="flex flex-col items-center py-1 px-2 rounded-lg text-gray-500 nav-mobile-btn">
-    <i class="fas fa-receipt text-lg"></i><span class="text-xs mt-0.5">結算單</span>
+  <button onclick="showPage('weekly')" id="nav-weekly" class="nav-mobile-btn">
+    <i class="fas fa-receipt"></i><span>結算單</span>
+    <div class="nav-mobile-active-dot"></div>
   </button>
-  <button onclick="showPage('more')" id="nav-more" class="flex flex-col items-center py-1 px-2 rounded-lg text-gray-500 nav-mobile-btn">
-    <i class="fas fa-bars text-lg"></i><span class="text-xs mt-0.5">更多</span>
+  <button onclick="showPage('more')" id="nav-more" class="nav-mobile-btn">
+    <i class="fas fa-grid-2"></i><span>更多</span>
+    <div class="nav-mobile-active-dot"></div>
   </button>
 </div>
 
-<div class="flex min-h-screen">
+<div style="display:flex; min-height:100vh;">
+
   <!-- Desktop Sidebar -->
-  <div class="sidebar bg-red-700 text-white flex flex-col fixed top-0 bottom-0 left-0 z-30 overflow-y-auto hidden md:flex">
-    <div class="p-4 border-b border-red-600">
-      <div class="flex items-center gap-2">
-        <div class="w-10 h-10 bg-white rounded-full flex items-center justify-center">
-          <span class="text-red-700 text-lg font-bold">雞</span>
-        </div>
-        <div>
-          <div class="font-bold text-lg">雞王</div>
-          <div class="text-xs text-red-200">進銷存管理系統</div>
-        </div>
+  <div class="sidebar hidden md:flex flex-col fixed top-0 bottom-0 left-0 z-30 overflow-y-auto" style="width:var(--sidebar-w)">
+    <!-- Logo -->
+    <div class="sidebar-logo">
+      <div class="logo-icon">雞</div>
+      <div class="logo-text">
+        <div class="name">雞王</div>
+        <div class="sub">進銷存管理系統</div>
       </div>
     </div>
-    <nav class="flex-1 p-3 space-y-1">
-      <button onclick="showPage('dashboard')" id="side-dashboard" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-chart-pie w-5"></i><span>儀表板</span>
+
+    <!-- Nav -->
+    <nav style="flex:1; padding: 8px 6px; overflow-y:auto;">
+
+      <button onclick="showPage('dashboard')" id="side-dashboard" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-chart-pie"></i></span><span>儀表板</span>
       </button>
-      <div class="text-red-300 text-xs font-semibold px-3 pt-3 pb-1">銷售管理</div>
-      <button onclick="showPage('sales')" id="side-sales" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-truck w-5"></i><span>出貨記錄</span>
+
+      <div class="nav-section-label">銷售管理</div>
+      <button onclick="showPage('sales')" id="side-sales" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-truck"></i></span><span>出貨記錄</span>
       </button>
-      <button onclick="showPage('weekly')" id="side-weekly" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-receipt w-5"></i><span>每週結算單</span>
+      <button onclick="showPage('weekly')" id="side-weekly" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-receipt"></i></span><span>每週結算單</span>
       </button>
-      <button onclick="showPage('receivables')" id="side-receivables" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-hand-holding-usd w-5"></i><span>應收帳款</span>
+      <button onclick="showPage('receivables')" id="side-receivables" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-hand-holding-usd"></i></span><span>應收帳款</span>
       </button>
-      <div class="text-red-300 text-xs font-semibold px-3 pt-3 pb-1">採購管理</div>
-      <button onclick="showPage('purchases')" id="side-purchases" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-shopping-cart w-5"></i><span>進貨記錄</span>
+
+      <div class="nav-section-label">採購管理</div>
+      <button onclick="showPage('purchases')" id="side-purchases" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-shopping-cart"></i></span><span>進貨記錄</span>
       </button>
-      <button onclick="showPage('payables')" id="side-payables" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-file-invoice-dollar w-5"></i><span>應付帳款</span>
+      <button onclick="showPage('payables')" id="side-payables" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-file-invoice-dollar"></i></span><span>應付帳款</span>
       </button>
-      <div class="text-red-300 text-xs font-semibold px-3 pt-3 pb-1">財務</div>
-      <button onclick="showPage('expenses')" id="side-expenses" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-gas-pump w-5"></i><span>費用記錄</span>
+
+      <div class="nav-section-label">財務</div>
+      <button onclick="showPage('expenses')" id="side-expenses" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-gas-pump"></i></span><span>費用記錄</span>
       </button>
-      <button onclick="showPage('cashflow')" id="side-cashflow" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-exchange-alt w-5"></i><span>現金流水帳</span>
+      <button onclick="showPage('cashflow')" id="side-cashflow" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-exchange-alt"></i></span><span>現金流水帳</span>
       </button>
-      <button onclick="showPage('reports')" id="side-reports" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-chart-bar w-5"></i><span>財務報表</span>
+      <button onclick="showPage('reports')" id="side-reports" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-chart-bar"></i></span><span>財務報表</span>
       </button>
-      <div class="text-red-300 text-xs font-semibold px-3 pt-3 pb-1">基本資料</div>
-      <button onclick="showPage('inventory')" id="side-inventory" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-boxes w-5"></i><span>庫存管理</span>
+
+      <div class="nav-section-label">基本資料</div>
+      <button onclick="showPage('inventory')" id="side-inventory" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-boxes"></i></span><span>庫存管理</span>
       </button>
-      <button onclick="showPage('customers')" id="side-customers" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-users w-5"></i><span>客戶管理</span>
+      <button onclick="showPage('customers')" id="side-customers" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-users"></i></span><span>客戶管理</span>
       </button>
-      <button onclick="showPage('suppliers')" id="side-suppliers" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-store w-5"></i><span>廠商管理</span>
+      <button onclick="showPage('suppliers')" id="side-suppliers" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-store"></i></span><span>廠商管理</span>
       </button>
-      <button onclick="showPage('products')" id="side-products" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-tag w-5"></i><span>商品管理</span>
+      <button onclick="showPage('products')" id="side-products" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-tag"></i></span><span>商品管理</span>
       </button>
-      <button onclick="showPage('prices')" id="side-prices" class="nav-item w-full flex items-center gap-3 px-3 py-2.5 rounded-lg text-left text-red-100 hover:bg-red-600 transition-colors">
-        <i class="fas fa-dollar-sign w-5"></i><span>報價管理</span>
+      <button onclick="showPage('prices')" id="side-prices" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-dollar-sign"></i></span><span>報價管理</span>
       </button>
     </nav>
+
+    <!-- Sidebar footer -->
+    <div style="padding:12px 10px; border-top:1px solid rgba(255,255,255,.06);">
+      <div style="font-size:11px; color:#475569; text-align:center;">雞王進銷存 v2.0</div>
+    </div>
   </div>
 
-  <!-- Main content -->
-  <div class="flex-1 md:ml-60 pb-20 md:pb-4">
-    <!-- Top header -->
-    <div class="bg-white border-b border-gray-200 sticky top-0 z-20 px-4 py-3 flex items-center justify-between">
-      <div class="flex items-center gap-2">
-        <div class="w-8 h-8 bg-red-600 rounded-full flex items-center justify-center md:hidden">
-          <span class="text-white font-bold text-sm">雞</span>
-        </div>
-        <h1 id="page-title" class="text-lg font-bold text-gray-800">儀表板</h1>
+  <!-- Main area -->
+  <div style="flex:1; margin-left:0;" class="md:ml-[252px] pb-20 md:pb-0">
+
+    <!-- Top Header -->
+    <div class="top-header">
+      <div class="page-title-area">
+        <div class="mobile-logo md:hidden">雞</div>
+        <h1 id="page-title">儀表板</h1>
       </div>
-      <div class="flex items-center gap-2">
-        <span id="today-date" class="text-sm text-gray-500"></span>
-        <button onclick="showPage('sales'); openSaleModal()" class="btn-primary text-sm px-3 py-1.5">
-          <i class="fas fa-plus mr-1"></i>快速出貨
+      <div class="header-right">
+        <span id="today-date" class="date-chip hidden sm:block"></span>
+        <button onclick="showPage('sales'); openSaleModal()" class="btn-primary" style="font-size:13px; padding:7px 14px;">
+          <i class="fas fa-plus"></i><span class="hidden sm:inline">快速出貨</span>
         </button>
       </div>
     </div>
 
-    <!-- Pages -->
-    <div class="p-4">
-      <!-- Dashboard -->
-      <div id="page-dashboard" class="page active">
-        <div id="dashboard-content"></div>
-      </div>
+    <!-- Page Content -->
+    <div style="padding:16px;">
 
-      <!-- Sales -->
-      <div id="page-sales" class="page">
-        <div id="sales-content"></div>
-      </div>
+      <div id="page-dashboard" class="page active"><div id="dashboard-content"></div></div>
+      <div id="page-sales"     class="page"><div id="sales-content"></div></div>
+      <div id="page-purchases" class="page"><div id="purchases-content"></div></div>
+      <div id="page-receivables" class="page"><div id="receivables-content"></div></div>
+      <div id="page-payables"  class="page"><div id="payables-content"></div></div>
+      <div id="page-expenses"  class="page"><div id="expenses-content"></div></div>
+      <div id="page-cashflow"  class="page"><div id="cashflow-content"></div></div>
+      <div id="page-reports"   class="page"><div id="reports-content"></div></div>
+      <div id="page-inventory" class="page"><div id="inventory-content"></div></div>
+      <div id="page-customers" class="page"><div id="customers-content"></div></div>
+      <div id="page-suppliers" class="page"><div id="suppliers-content"></div></div>
+      <div id="page-products"  class="page"><div id="products-content"></div></div>
+      <div id="page-prices"    class="page"><div id="prices-content"></div></div>
+      <div id="page-weekly"    class="page"><div id="weekly-content"></div></div>
 
-      <!-- Purchases -->
-      <div id="page-purchases" class="page">
-        <div id="purchases-content"></div>
-      </div>
-
-      <!-- Receivables -->
-      <div id="page-receivables" class="page">
-        <div id="receivables-content"></div>
-      </div>
-
-      <!-- Payables -->
-      <div id="page-payables" class="page">
-        <div id="payables-content"></div>
-      </div>
-
-      <!-- Expenses -->
-      <div id="page-expenses" class="page">
-        <div id="expenses-content"></div>
-      </div>
-
-      <!-- Cashflow -->
-      <div id="page-cashflow" class="page">
-        <div id="cashflow-content"></div>
-      </div>
-
-      <!-- Reports -->
-      <div id="page-reports" class="page">
-        <div id="reports-content"></div>
-      </div>
-
-      <!-- Inventory -->
-      <div id="page-inventory" class="page">
-        <div id="inventory-content"></div>
-      </div>
-
-      <!-- Customers -->
-      <div id="page-customers" class="page">
-        <div id="customers-content"></div>
-      </div>
-
-      <!-- Suppliers -->
-      <div id="page-suppliers" class="page">
-        <div id="suppliers-content"></div>
-      </div>
-
-      <!-- Products -->
-      <div id="page-products" class="page">
-        <div id="products-content"></div>
-      </div>
-
-      <!-- Prices -->
-      <div id="page-prices" class="page">
-        <div id="prices-content"></div>
-      </div>
-
-      <!-- Weekly Statement -->
-      <div id="page-weekly" class="page">
-        <div id="weekly-content"></div>
-      </div>
-
-      <!-- More (mobile) -->
+      <!-- More Page -->
       <div id="page-more" class="page">
-        <div class="grid grid-cols-2 gap-3">
-          <button onclick="showPage('weekly')" class="card p-4 flex flex-col items-center gap-2 text-center" style="border: 2px solid #dc2626">
-            <i class="fas fa-receipt text-2xl text-red-600"></i>
-            <span class="text-sm font-medium text-red-600 font-bold">每週結算單</span>
+        <div style="font-size:13px; color:var(--muted); font-weight:600; letter-spacing:.5px; text-transform:uppercase; margin-bottom:12px; padding:0 2px;">所有功能</div>
+        <div style="display:grid; grid-template-columns:repeat(3,1fr); gap:10px;">
+          <button onclick="showPage('weekly')" class="more-grid-item featured">
+            <div class="more-icon-wrap" style="background:linear-gradient(135deg,#fee2e2,#fecaca)"><i class="fas fa-receipt" style="color:var(--brand)"></i></div>
+            <span style="font-size:12px; font-weight:700; color:var(--brand)">每週結算單</span>
           </button>
-          <button onclick="showPage('receivables')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-hand-holding-usd text-2xl text-green-600"></i>
-            <span class="text-sm font-medium">應收帳款</span>
+          <button onclick="showPage('receivables')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#ecfdf5"><i class="fas fa-hand-holding-usd" style="color:#059669"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">應收帳款</span>
           </button>
-          <button onclick="showPage('payables')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-file-invoice-dollar text-2xl text-red-600"></i>
-            <span class="text-sm font-medium">應付帳款</span>
+          <button onclick="showPage('payables')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#fef2f2"><i class="fas fa-file-invoice-dollar" style="color:var(--brand)"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">應付帳款</span>
           </button>
-          <button onclick="showPage('expenses')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-gas-pump text-2xl text-orange-500"></i>
-            <span class="text-sm font-medium">費用記錄</span>
+          <button onclick="showPage('expenses')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#fff7ed"><i class="fas fa-gas-pump" style="color:#ea580c"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">費用記錄</span>
           </button>
-          <button onclick="showPage('cashflow')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-exchange-alt text-2xl text-blue-600"></i>
-            <span class="text-sm font-medium">現金流水帳</span>
+          <button onclick="showPage('cashflow')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#eff6ff"><i class="fas fa-exchange-alt" style="color:#2563eb"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">現金流水帳</span>
           </button>
-          <button onclick="showPage('reports')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-chart-bar text-2xl text-purple-600"></i>
-            <span class="text-sm font-medium">財務報表</span>
+          <button onclick="showPage('reports')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#f5f3ff"><i class="fas fa-chart-bar" style="color:#7c3aed"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">財務報表</span>
           </button>
-          <button onclick="showPage('inventory')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-boxes text-2xl text-yellow-600"></i>
-            <span class="text-sm font-medium">庫存管理</span>
+          <button onclick="showPage('inventory')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#fefce8"><i class="fas fa-boxes" style="color:#ca8a04"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">庫存管理</span>
           </button>
-          <button onclick="showPage('customers')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-users text-2xl text-indigo-600"></i>
-            <span class="text-sm font-medium">客戶管理</span>
+          <button onclick="showPage('customers')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#eef2ff"><i class="fas fa-users" style="color:#4f46e5"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">客戶管理</span>
           </button>
-          <button onclick="showPage('suppliers')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-store text-2xl text-teal-600"></i>
-            <span class="text-sm font-medium">廠商管理</span>
+          <button onclick="showPage('suppliers')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#f0fdfa"><i class="fas fa-store" style="color:#0d9488"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">廠商管理</span>
           </button>
-          <button onclick="showPage('products')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-tag text-2xl text-pink-600"></i>
-            <span class="text-sm font-medium">商品管理</span>
+          <button onclick="showPage('products')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#fdf4ff"><i class="fas fa-tag" style="color:#a21caf"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">商品管理</span>
           </button>
-          <button onclick="showPage('prices')" class="card p-4 flex flex-col items-center gap-2 text-center">
-            <i class="fas fa-dollar-sign text-2xl text-amber-600"></i>
-            <span class="text-sm font-medium">報價管理</span>
+          <button onclick="showPage('prices')" class="more-grid-item">
+            <div class="more-icon-wrap" style="background:#fffbeb"><i class="fas fa-dollar-sign" style="color:#d97706"></i></div>
+            <span style="font-size:12px; font-weight:600; color:var(--text)">報價管理</span>
           </button>
         </div>
       </div>
+
     </div>
   </div>
 </div>
 
 <!-- Toast -->
-<div id="toast" class="fixed top-4 right-4 z-50 hidden">
-  <div class="bg-gray-800 text-white px-4 py-3 rounded-lg shadow-lg text-sm max-w-xs"></div>
+<div id="toast" style="position:fixed; top:16px; right:16px; z-index:60; display:none;">
+  <div style="background:#1e293b; color:white; padding:12px 18px; border-radius:12px; box-shadow:0 8px 24px rgba(0,0,0,.2); font-size:13.5px; max-width:280px; display:flex; align-items:center; gap:8px;"></div>
 </div>
 
 <!-- Modal Container -->
