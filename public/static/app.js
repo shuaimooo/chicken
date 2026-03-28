@@ -9,6 +9,24 @@ const state = {
   charts: {},
   year: new Date().getFullYear(),
   month: new Date().getMonth() + 1,
+  search: {
+    sales: '', purchases: '', expenses: '', cashflow: '',
+    customers: '', suppliers: '', products: '', receivables: '', payables: '',
+    inventory: ''
+  }
+}
+
+// 搜尋工具：高亮關鍵字
+function hlSearch(text, kw) {
+  if (!kw || !text) return text || ''
+  const escaped = kw.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  return String(text).replace(new RegExp(escaped, 'gi'), m => `<mark style="background:#f5c842;color:#000;border-radius:2px;">${m}</mark>`)
+}
+// 搜尋工具：檢查是否符合關鍵字
+function matchSearch(row, fields, kw) {
+  if (!kw) return true
+  const q = kw.toLowerCase()
+  return fields.some(f => String(row[f] || '').toLowerCase().includes(q))
 }
 
 // === 工具函數 ===
@@ -59,6 +77,9 @@ const pageNames = {
   prices: '報價管理', weekly: '每週結算單', more: '更多功能',
 }
 
+// 頁面歷史
+const _pageHistory = []
+
 function showPage(page) {
   document.querySelectorAll('.page').forEach(el => el.classList.remove('active'))
   document.getElementById(`page-${page}`)?.classList.add('active')
@@ -67,8 +88,81 @@ function showPage(page) {
   document.getElementById(`side-${page}`)?.classList.add('active')
   document.getElementById(`nav-${page}`)?.classList.add('active')
   document.getElementById('page-title').textContent = pageNames[page] || page
+  // 記錄頁面歷史（不重複連續相同）
+  if (_pageHistory[_pageHistory.length - 1] !== state.currentPage && state.currentPage) {
+    _pageHistory.push(state.currentPage)
+    if (_pageHistory.length > 20) _pageHistory.shift()
+  }
   state.currentPage = page
+  // 上一步按鈕：有歷史才顯示
+  const backBtn = document.getElementById('back-btn')
+  if (backBtn) backBtn.style.display = _pageHistory.length > 0 ? '' : 'none'
   loadPage(page)
+}
+
+// 上一步
+function goBack() {
+  if (_pageHistory.length === 0) return
+  const prev = _pageHistory.pop()
+  // 直接切換不再推入歷史
+  document.querySelectorAll('.page').forEach(el => el.classList.remove('active'))
+  document.getElementById(`page-${prev}`)?.classList.add('active')
+  document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'))
+  document.querySelectorAll('.nav-mobile-btn').forEach(el => el.classList.remove('active'))
+  document.getElementById(`side-${prev}`)?.classList.add('active')
+  document.getElementById(`nav-${prev}`)?.classList.add('active')
+  document.getElementById('page-title').textContent = pageNames[prev] || prev
+  state.currentPage = prev
+  const backBtn = document.getElementById('back-btn')
+  if (backBtn) backBtn.style.display = _pageHistory.length > 0 ? '' : 'none'
+  loadPage(prev)
+}
+
+// 重製資料確認
+function confirmResetData() {
+  showModal(`
+    <div class="modal-overlay" style="display:flex;align-items:center;justify-content:center;">
+    <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:16px;padding:28px 24px;max-width:360px;width:90%;box-shadow:0 8px 40px rgba(0,0,0,.6);">
+      <div style="text-align:center;margin-bottom:20px;">
+        <div style="font-size:40px;margin-bottom:10px;">⚠️</div>
+        <div style="font-size:20px;font-weight:700;color:#f87171;margin-bottom:8px;">確定要重製所有資料？</div>
+        <div style="font-size:15px;color:var(--text-dim);line-height:1.6;">
+          這將清除：<br>
+          <span style="color:#fca5a5;">出貨、進貨、費用、現金流</span><br>
+          <span style="color:#fca5a5;">應收、應付、報價記錄</span><br><br>
+          <span style="color:var(--green);">保留：客戶、廠商、商品</span><br><br>
+          <strong style="color:#f87171;">此操作無法還原！</strong>
+        </div>
+      </div>
+      <div style="display:flex;gap:10px;">
+        <button onclick="closeModal()" class="btn-secondary" style="flex:1;padding:10px;">取消</button>
+        <button onclick="closeModal();doResetData()" style="flex:1;padding:10px;background:#dc2626;border:none;color:#fff;border-radius:8px;cursor:pointer;font-size:16px;font-weight:700;">
+          <i class="fas fa-trash-alt" style="margin-right:5px;"></i>確定清除
+        </button>
+      </div>
+    </div>
+    </div>
+  `)
+}
+
+async function doResetData() {
+  showToast('清除中…', 'error')
+  const res = await api('POST', '/reset-data')
+  if (res?.success) {
+    showToast('✓ 資料已全部清除', 'success')
+    // 清除前端快取
+    window._salesMerged = []
+    window._purchasesMerged = []
+    window._expensesData = []
+    window._cashflowData = []
+    window._receivablesData = []
+    window._payablesData = []
+    window._inventoryData = []
+    // 重新載入當前頁面
+    setTimeout(() => loadPage(state.currentPage), 500)
+  } else {
+    showToast('清除失敗：' + (res?.error || '未知錯誤'), 'error')
+  }
 }
 
 async function loadPage(page) {
@@ -310,6 +404,9 @@ async function loadSales() {
     <select onchange="state.month=parseInt(this.value);loadSales()">
       ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===state.month?'selected':''}>${i+1}月</option>`).join('')}
     </select>
+    <input id="sales-search" type="text" placeholder="🔍 搜尋客戶/品項/狀態…" value="${state.search.sales}"
+      oninput="state.search.sales=this.value;renderSalesTable()"
+      style="flex:1;min-width:120px;max-width:220px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
     <button onclick="openSaleModal()" class="btn-primary" style="margin-left:auto;"><i class="fas fa-plus"></i>新增出貨</button>
   </div>
 
@@ -329,41 +426,52 @@ async function loadSales() {
     </div>
   </div>
 
+  <div id="sales-table-wrap"></div>`
+
+  // 儲存 merged 供 renderSalesTable 使用
+  window._salesMerged = merged
+  renderSalesTable()
+}
+
+function renderSalesTable() {
+  const wrap = document.getElementById('sales-table-wrap')
+  if (!wrap) return
+  const kw = state.search.sales
+  const merged = (window._salesMerged || []).filter(r =>
+    matchSearch(r, ['customer_name','product_name','category','payment_status'], kw)
+  )
+  const countEl = document.querySelector('#sales-content .sum-card-value.blue')
+  if (countEl) countEl.textContent = merged.length
+
+  wrap.innerHTML = `
   <div class="tbl-wrap">
     <table class="ftbl">
       <colgroup>
-        <col style="width:88px">   <!-- 日期 -->
-        <col style="width:72px">   <!-- 客戶 -->
-        <col style="width:46px">   <!-- 類別 -->
-        <col style="width:72px">   <!-- 品項 -->
-        <col style="width:52px">   <!-- KG -->
-        <col style="width:44px">   <!-- 量 -->
-        <col style="width:54px">   <!-- 單價 -->
-        <col style="width:70px">   <!-- 金額 -->
-        <col style="width:54px">   <!-- 狀態 -->
-        <col style="width:56px">   <!-- 操作 -->
+        <col style="width:88px">
+        <col style="width:72px">
+        <col style="width:46px">
+        <col style="width:72px">
+        <col style="width:52px">
+        <col style="width:44px">
+        <col style="width:54px">
+        <col style="width:70px">
+        <col style="width:54px">
+        <col style="width:56px">
       </colgroup>
       <thead class="table-header"><tr>
-        <th>日期</th>
-        <th>客戶</th>
-        <th class="td-ctr">類別</th>
-        <th>品項</th>
-        <th class="td-num">KG</th>
-        <th class="td-num">數量</th>
-        <th class="td-num">單價</th>
-        <th class="td-num">金額</th>
-        <th class="td-ctr">狀態</th>
-        <th class="td-ctr">操作</th>
+        <th>日期</th><th>客戶</th><th class="td-ctr">類別</th><th>品項</th>
+        <th class="td-num">KG</th><th class="td-num">數量</th><th class="td-num">單價</th>
+        <th class="td-num">金額</th><th class="td-ctr">狀態</th><th class="td-ctr">操作</th>
       </tr></thead>
       <tbody>
         ${merged.length === 0
-          ? '<tr><td colspan="10" style="text-align:center;padding:28px;color:var(--text-dim);">尚無資料</td></tr>'
+          ? `<tr><td colspan="10" style="text-align:center;padding:28px;color:var(--text-dim);">${kw ? '找不到符合「'+kw+'」的記錄' : '尚無資料'}</td></tr>`
           : merged.map(r => `
           <tr>
             <td class="fc tc-dim">${fmtDate(r.date)}</td>
-            <td class="fc tc-bold" title="${r.customer_name}">${r.customer_name}</td>
+            <td class="fc tc-bold" title="${r.customer_name}">${hlSearch(r.customer_name, kw)}</td>
             <td class="td-ctr">${r.category ? `<span class="${r.category==='生鮮'?'badge-fresh':r.category==='冷凍'?'badge-frozen':'badge-cooked'}">${r.category}</span>` : '-'}</td>
-            <td class="fc tc-sub" title="${r.product_name}">${r.product_name}</td>
+            <td class="fc tc-sub" title="${r.product_name}">${hlSearch(r.product_name, kw)}</td>
             <td class="td-num tc-blue">${r.total_kg > 0 ? parseFloat(r.total_kg).toFixed(1) : '-'}</td>
             <td class="td-num">${Math.round(r.total_qty)}</td>
             <td class="td-num">${r.unit_price ? parseFloat(r.unit_price).toFixed(1) : '-'}</td>
@@ -782,6 +890,9 @@ async function loadPurchases() {
     <select onchange="state.month=parseInt(this.value);loadPurchases()">
       ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===state.month?'selected':''}>${i+1}月</option>`).join('')}
     </select>
+    <input id="purchases-search" type="text" placeholder="🔍 搜尋廠商/品項…" value="${state.search.purchases}"
+      oninput="state.search.purchases=this.value;renderPurchasesTable()"
+      style="flex:1;min-width:120px;max-width:220px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
     <button onclick="openPurchaseModal()" class="btn-primary" style="margin-left:auto;"><i class="fas fa-plus"></i>新增進貨</button>
   </div>
 
@@ -800,38 +911,43 @@ async function loadPurchases() {
     </div>
   </div>
 
+  <div id="purchases-table-wrap"></div>`
+
+  window._purchasesMerged = merged
+  renderPurchasesTable()
+}
+
+function renderPurchasesTable() {
+  const wrap = document.getElementById('purchases-table-wrap')
+  if (!wrap) return
+  const kw = state.search.purchases
+  const merged = (window._purchasesMerged || []).filter(r =>
+    matchSearch(r, ['supplier_name','product_name','payment_status'], kw)
+  )
+  const countEl = document.querySelector('#purchases-content .sum-card-value.blue')
+  if (countEl) countEl.textContent = merged.length
+
+  wrap.innerHTML = `
   <div class="tbl-wrap">
     <table class="ftbl">
       <colgroup>
-        <col style="width:88px">   <!-- 日期 -->
-        <col style="width:72px">   <!-- 廠商 -->
-        <col style="width:72px">   <!-- 品項 -->
-        <col style="width:52px">   <!-- KG -->
-        <col style="width:44px">   <!-- 量 -->
-        <col style="width:54px">   <!-- 單價 -->
-        <col style="width:70px">   <!-- 金額 -->
-        <col style="width:54px">   <!-- 狀態 -->
-        <col style="width:56px">   <!-- 操作 -->
+        <col style="width:88px"><col style="width:72px"><col style="width:72px">
+        <col style="width:52px"><col style="width:44px"><col style="width:54px">
+        <col style="width:70px"><col style="width:54px"><col style="width:56px">
       </colgroup>
       <thead class="table-header"><tr>
-        <th>日期</th>
-        <th>廠商</th>
-        <th>品項</th>
-        <th class="td-num">KG</th>
-        <th class="td-num">數量</th>
-        <th class="td-num">單價</th>
-        <th class="td-num">金額</th>
-        <th class="td-ctr">狀態</th>
-        <th class="td-ctr">操作</th>
+        <th>日期</th><th>廠商</th><th>品項</th>
+        <th class="td-num">KG</th><th class="td-num">數量</th><th class="td-num">單價</th>
+        <th class="td-num">金額</th><th class="td-ctr">狀態</th><th class="td-ctr">操作</th>
       </tr></thead>
       <tbody>
         ${merged.length === 0
-          ? '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--text-dim);">尚無資料</td></tr>'
+          ? `<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--text-dim);">${kw ? '找不到「'+kw+'」' : '尚無資料'}</td></tr>`
           : merged.map(r => `
           <tr>
             <td class="fc tc-dim">${fmtDate(r.date)}</td>
-            <td class="fc tc-bold" title="${r.supplier_name||''}">${r.supplier_name||'-'}</td>
-            <td class="fc tc-sub" title="${r.product_name||'-'}">${r.product_name||'-'}</td>
+            <td class="fc tc-bold" title="${r.supplier_name||''}">${hlSearch(r.supplier_name||'-', kw)}</td>
+            <td class="fc tc-sub" title="${r.product_name||'-'}">${hlSearch(r.product_name||'-', kw)}</td>
             <td class="td-num tc-blue">${r.total_kg > 0 ? parseFloat(r.total_kg).toFixed(1) : '-'}</td>
             <td class="td-num">${Math.round(r.total_qty)}</td>
             <td class="td-num">${r.cost_price ? parseFloat(r.cost_price).toFixed(1) : '-'}</td>
@@ -1146,12 +1262,29 @@ async function loadReceivables() {
   if (!data) return
 
   el.innerHTML = `
-  <div class="flex items-center gap-2 mb-4">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
     <select class="input-field" style="width:90px" onchange="state.year=parseInt(this.value);loadReceivables()">
       ${[2024,2025,2026,2027].map(yr => `<option value="${yr}" ${yr===y?'selected':''}>${yr}年</option>`).join('')}
     </select>
+    <input id="receivables-search" type="text" placeholder="🔍 搜尋客戶名稱…" value="${state.search.receivables}"
+      oninput="state.search.receivables=this.value;renderReceivablesTable()"
+      style="flex:1;min-width:120px;max-width:200px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
     <span class="text-sm text-gray-500">客戶應收帳款彙總</span>
   </div>
+  <div id="receivables-table-wrap"></div>`
+
+  window._receivablesData = data
+  renderReceivablesTable()
+}
+
+function renderReceivablesTable() {
+  const wrap = document.getElementById('receivables-table-wrap')
+  if (!wrap) return
+  const kw = state.search.receivables
+  const data = (window._receivablesData || []).filter(r =>
+    matchSearch(r, ['customer_name'], kw)
+  )
+  wrap.innerHTML = `
   <div class="card overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -1167,7 +1300,7 @@ async function loadReceivables() {
             const rate = r.revenue > 0 ? ((r.paid || 0) / r.revenue * 100).toFixed(1) : '0'
             return `
             <tr class="border-b border-gray-50">
-              <td class="p-3 font-medium">${r.customer_name}</td>
+              <td class="p-3 font-medium">${hlSearch(r.customer_name,kw)}</td>
               <td class="p-3 text-right">$${fmt(r.revenue)}</td>
               <td class="p-3 text-right text-amber-600 font-semibold">$${fmt(r.receivable)}</td>
               <td class="p-3 text-right text-green-600">$${fmt(r.paid)}</td>
@@ -1202,12 +1335,29 @@ async function loadPayables() {
   if (!data) return
 
   el.innerHTML = `
-  <div class="flex items-center gap-2 mb-4">
+  <div class="flex items-center gap-2 mb-4 flex-wrap">
     <select class="input-field" style="width:90px" onchange="state.year=parseInt(this.value);loadPayables()">
       ${[2024,2025,2026,2027].map(yr => `<option value="${yr}" ${yr===y?'selected':''}>${yr}年</option>`).join('')}
     </select>
+    <input id="payables-search" type="text" placeholder="🔍 搜尋廠商名稱…" value="${state.search.payables}"
+      oninput="state.search.payables=this.value;renderPayablesTable()"
+      style="flex:1;min-width:120px;max-width:200px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
     <span class="text-sm text-gray-500">廠商應付帳款彙總</span>
   </div>
+  <div id="payables-table-wrap"></div>`
+
+  window._payablesData = data
+  renderPayablesTable()
+}
+
+function renderPayablesTable() {
+  const wrap = document.getElementById('payables-table-wrap')
+  if (!wrap) return
+  const kw = state.search.payables
+  const data = (window._payablesData || []).filter(r =>
+    matchSearch(r, ['supplier_name'], kw)
+  )
+  wrap.innerHTML = `
   <div class="card overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -1218,9 +1368,10 @@ async function loadPayables() {
           <th class="text-center p-3">筆數</th>
         </tr></thead>
         <tbody>
-          ${data.map(r => `
+          ${data.length === 0 ? `<tr><td colspan="4" class="p-8 text-center text-gray-400">${kw?'找不到「'+kw+'」':'尚無資料'}</td></tr>` :
+          data.map(r => `
           <tr class="border-b border-gray-50">
-            <td class="p-3 font-medium">${r.supplier_name||'未指定'}</td>
+            <td class="p-3 font-medium">${hlSearch(r.supplier_name||'未指定',kw)}</td>
             <td class="p-3 text-right">$${fmt(r.total)}</td>
             <td class="p-3 text-right ${r.unpaid > 0 ? 'text-red-600 font-semibold' : 'text-gray-400'}">$${fmt(r.unpaid)}</td>
             <td class="p-3 text-center text-gray-500">${r.cnt}</td>
@@ -1255,13 +1406,29 @@ async function loadExpenses() {
     <select class="input-field" style="width:90px" onchange="state.month=parseInt(this.value);loadExpenses()">
       ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===m?'selected':''}>${i+1}月</option>`).join('')}
     </select>
-    <div class="flex-1"></div>
+    <input id="expenses-search" type="text" placeholder="🔍 搜尋類別/說明…" value="${state.search.expenses}"
+      oninput="state.search.expenses=this.value;renderExpensesTable()"
+      style="flex:1;min-width:110px;max-width:200px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
     <button onclick="openExpenseModal()" class="btn-primary"><i class="fas fa-plus mr-1"></i>新增費用</button>
   </div>
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
     <div class="card p-3 text-center col-span-2 md:col-span-1"><div class="text-xs text-gray-500 mb-1">本期合計</div><div class="text-xl font-bold text-red-600">$${fmt(total)}</div></div>
     ${Object.entries(catMap).map(([cat, amt]) => `<div class="card p-3 text-center"><div class="text-xs text-gray-500 mb-1">${cat}</div><div class="text-base font-bold text-orange-600">$${fmt(amt)}</div></div>`).join('')}
   </div>
+  <div id="expenses-table-wrap"></div>`
+
+  window._expensesData = data
+  renderExpensesTable()
+}
+
+function renderExpensesTable() {
+  const wrap = document.getElementById('expenses-table-wrap')
+  if (!wrap) return
+  const kw = state.search.expenses
+  const data = (window._expensesData || []).filter(r =>
+    matchSearch(r, ['category','description','destination'], kw)
+  )
+  wrap.innerHTML = `
   <div class="card overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -1273,12 +1440,12 @@ async function loadExpenses() {
           <th class="text-center p-3">操作</th>
         </tr></thead>
         <tbody>
-          ${data.length === 0 ? '<tr><td colspan="5" class="p-8 text-center text-gray-400">尚無資料</td></tr>' :
+          ${data.length === 0 ? `<tr><td colspan="5" class="p-8 text-center text-gray-400">${kw?'找不到「'+kw+'」':'尚無資料'}</td></tr>` :
             data.map(r => `
             <tr class="border-b border-gray-50">
               <td class="p-3 text-gray-500">${fmtDate(r.date)}</td>
-              <td class="p-3"><span class="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-xs">${r.category}</span></td>
-              <td class="p-3 text-gray-600 hidden md:table-cell">${r.description||''} ${r.destination||''}</td>
+              <td class="p-3"><span class="bg-orange-50 text-orange-700 px-2 py-0.5 rounded text-xs">${hlSearch(r.category,kw)}</span></td>
+              <td class="p-3 text-gray-600 hidden md:table-cell">${hlSearch((r.description||'')+' '+(r.destination||''),kw)}</td>
               <td class="p-3 text-right font-semibold text-red-600">$${fmt(r.amount)}</td>
               <td class="p-3 text-center">
                 <button onclick="openExpenseModal(${r.id})" class="text-blue-500 mr-2"><i class="fas fa-edit"></i></button>
@@ -1376,7 +1543,9 @@ async function loadCashflow() {
     <select class="input-field" style="width:90px" onchange="state.month=parseInt(this.value);loadCashflow()">
       ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===m?'selected':''}>${i+1}月</option>`).join('')}
     </select>
-    <div class="flex-1"></div>
+    <input id="cashflow-search" type="text" placeholder="🔍 搜尋摘要/對象…" value="${state.search.cashflow}"
+      oninput="state.search.cashflow=this.value;renderCashflowTable()"
+      style="flex:1;min-width:110px;max-width:200px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
     <button onclick="openCashflowModal()" class="btn-primary"><i class="fas fa-plus mr-1"></i>新增</button>
   </div>
   <div class="grid grid-cols-3 gap-3 mb-4">
@@ -1384,6 +1553,20 @@ async function loadCashflow() {
     <div class="card p-3 text-center"><div class="text-xs text-gray-500 mb-1">支出</div><div class="text-lg font-bold text-red-600">-$${fmt(totalOut)}</div></div>
     <div class="card p-3 text-center"><div class="text-xs text-gray-500 mb-1">淨額</div><div class="text-lg font-bold ${totalIn-totalOut>=0?'text-blue-600':'text-red-600'}">$${fmt(totalIn-totalOut)}</div></div>
   </div>
+  <div id="cashflow-table-wrap"></div>`
+
+  window._cashflowData = data
+  renderCashflowTable()
+}
+
+function renderCashflowTable() {
+  const wrap = document.getElementById('cashflow-table-wrap')
+  if (!wrap) return
+  const kw = state.search.cashflow
+  const data = (window._cashflowData || []).filter(r =>
+    matchSearch(r, ['description','party','category'], kw)
+  )
+  wrap.innerHTML = `
   <div class="card overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -1396,11 +1579,11 @@ async function loadCashflow() {
           <th class="text-center p-3">操作</th>
         </tr></thead>
         <tbody>
-          ${data.length === 0 ? '<tr><td colspan="6" class="p-8 text-center text-gray-400">尚無資料</td></tr>' :
+          ${data.length === 0 ? `<tr><td colspan="6" class="p-8 text-center text-gray-400">${kw?'找不到「'+kw+'」':'尚無資料'}</td></tr>` :
             data.map(r => `
             <tr class="border-b border-gray-50">
               <td class="p-3 text-gray-500">${fmtDate(r.date)}</td>
-              <td class="p-3">${r.description}<br><span class="text-xs text-gray-400">${r.party||''}</span></td>
+              <td class="p-3">${hlSearch(r.description,kw)}<br><span class="text-xs text-gray-400">${hlSearch(r.party||'',kw)}</span></td>
               <td class="p-3 text-right amount-positive">${r.income > 0 ? '+$'+fmt(r.income) : ''}</td>
               <td class="p-3 text-right amount-negative">${r.expense > 0 ? '-$'+fmt(r.expense) : ''}</td>
               <td class="p-3 text-right hidden sm:table-cell font-medium">$${fmt(r.balance)}</td>
@@ -1684,58 +1867,55 @@ async function loadInventory() {
     <select onchange="state.year=parseInt(this.value);loadInventory()">
       ${[2024,2025,2026,2027].map(y=>`<option value="${y}" ${y===yr?'selected':''}>${y}年</option>`).join('')}
     </select>
-    <span style="font-size:18px;color:var(--text-dim);margin-left:4px;">庫存概覽（依進出貨推算）</span>
+    <input id="inventory-search" type="text" placeholder="🔍 搜尋品項/類別…" value="${state.search.inventory}"
+      oninput="state.search.inventory=this.value;renderInventoryTable()"
+      style="flex:1;min-width:110px;max-width:200px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
+    <span style="font-size:18px;color:var(--text-dim);margin-left:4px;">庫存概覽</span>
   </div>
 
   <div class="sum-cards" style="grid-template-columns:repeat(3,1fr);">
-    <div class="sum-card">
-      <div class="sum-card-label">品項數</div>
-      <div class="sum-card-value blue">${inv.length}</div>
-    </div>
-    <div class="sum-card">
-      <div class="sum-card-label">進貨總量</div>
-      <div class="sum-card-value green">${fmt(totalPurch)}</div>
-    </div>
-    <div class="sum-card">
-      <div class="sum-card-label">出貨總量</div>
-      <div class="sum-card-value red">${fmt(totalSold)}</div>
-    </div>
+    <div class="sum-card"><div class="sum-card-label">品項數</div><div class="sum-card-value blue">${inv.length}</div></div>
+    <div class="sum-card"><div class="sum-card-label">進貨總量</div><div class="sum-card-value green">${fmt(totalPurch)}</div></div>
+    <div class="sum-card"><div class="sum-card-label">出貨總量</div><div class="sum-card-value red">${fmt(totalSold)}</div></div>
   </div>
 
+  <div id="inventory-table-wrap"></div>`
+
+  window._inventoryData = inv
+  renderInventoryTable()
+}
+
+function renderInventoryTable() {
+  const wrap = document.getElementById('inventory-table-wrap')
+  if (!wrap) return
+  const kw = state.search.inventory
+  const inv = (window._inventoryData || []).filter(r =>
+    matchSearch(r, ['product','category'], kw)
+  )
+  wrap.innerHTML = `
   <div class="tbl-wrap">
     <table class="ftbl">
       <colgroup>
-        <col style="width:100px">  <!-- 品項 -->
-        <col style="width:48px">   <!-- 類別 -->
-        <col style="width:72px">   <!-- 進貨量 -->
-        <col style="width:40px">   <!-- 單位 -->
-        <col style="width:72px">   <!-- 出貨量 -->
-        <col style="width:62px">   <!-- 單價 -->
-        <col style="width:70px">   <!-- 結餘 -->
+        <col style="width:100px"><col style="width:48px"><col style="width:72px">
+        <col style="width:40px"><col style="width:72px"><col style="width:62px"><col style="width:70px">
       </colgroup>
       <thead class="table-header"><tr>
-        <th>品項</th>
-        <th class="td-ctr">類別</th>
-        <th class="td-num">進貨</th>
-        <th class="td-ctr">單位</th>
-        <th class="td-num">出貨</th>
-        <th class="td-num">單價</th>
-        <th class="td-num">結餘</th>
+        <th>品項</th><th class="td-ctr">類別</th><th class="td-num">進貨</th>
+        <th class="td-ctr">單位</th><th class="td-num">出貨</th><th class="td-num">單價</th><th class="td-num">結餘</th>
       </tr></thead>
       <tbody>
         ${inv.length === 0
-          ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-dim);">尚無資料</td></tr>'
+          ? `<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-dim);">${kw?'找不到「'+kw+'」':'尚無資料'}</td></tr>`
           : inv.map(r => `
           <tr>
-            <td class="fc tc-bold" title="${r.product}">${r.product}</td>
+            <td class="fc tc-bold" title="${r.product}">${hlSearch(r.product,kw)}</td>
             <td class="td-ctr"><span class="${r.category==='生鮮'?'badge-fresh':r.category==='冷凍'?'badge-frozen':'badge-cooked'}">${r.category}</span></td>
             <td class="td-num tc-blue">${fmt(r.purchased, 0)}</td>
             <td class="td-ctr tc-dim">${r.unit}</td>
             <td class="td-num">${fmt(r.sold, 0)}</td>
             <td class="td-num">${r.lastCost > 0 ? '$'+parseFloat(r.lastCost).toFixed(1) : '-'}</td>
             <td class="td-num" style="font-weight:700;color:${r.balance < 0 ? 'var(--red)' : r.balance === 0 ? 'var(--text-dim)' : 'var(--green)'};">${fmt(r.balance, 0)}</td>
-          </tr>`).join('')
-        }
+          </tr>`).join('')}
       </tbody>
     </table>
   </div>`
@@ -1748,9 +1928,26 @@ async function loadCustomers() {
   if (!data) return
 
   el.innerHTML = `
-  <div class="flex justify-end mb-4">
-    <button onclick="openCustomerModal()" class="btn-primary"><i class="fas fa-plus mr-1"></i>新增客戶</button>
+  <div class="flex gap-2 mb-4 flex-wrap items-center">
+    <input id="customers-search" type="text" placeholder="🔍 搜尋客戶名稱/代碼…" value="${state.search.customers}"
+      oninput="state.search.customers=this.value;renderCustomersTable()"
+      style="flex:1;min-width:150px;max-width:260px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
+    <button onclick="openCustomerModal()" class="btn-primary" style="margin-left:auto;"><i class="fas fa-plus mr-1"></i>新增客戶</button>
   </div>
+  <div id="customers-table-wrap"></div>`
+
+  window._customersData = data
+  renderCustomersTable()
+}
+
+function renderCustomersTable() {
+  const wrap = document.getElementById('customers-table-wrap')
+  if (!wrap) return
+  const kw = state.search.customers
+  const data = (window._customersData || []).filter(r =>
+    matchSearch(r, ['name','code','phone','company'], kw)
+  )
+  wrap.innerHTML = `
   <div class="card overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -1762,10 +1959,11 @@ async function loadCustomers() {
           <th class="text-center p-3">操作</th>
         </tr></thead>
         <tbody>
-          ${data.map(r => `
+          ${data.length === 0 ? `<tr><td colspan="5" class="p-8 text-center text-gray-400">${kw?'找不到「'+kw+'」':'尚無資料'}</td></tr>` :
+          data.map(r => `
           <tr class="border-b border-gray-50">
-            <td class="p-3 text-gray-500">${r.code}</td>
-            <td class="p-3 font-medium">${r.name}<br><span class="text-xs text-gray-400">${r.company||''}</span></td>
+            <td class="p-3 text-gray-500">${hlSearch(r.code,kw)}</td>
+            <td class="p-3 font-medium">${hlSearch(r.name,kw)}<br><span class="text-xs text-gray-400">${r.company||''}</span></td>
             <td class="p-3 text-gray-600 hidden md:table-cell">${r.phone||'-'}</td>
             <td class="p-3 hidden md:table-cell"><span class="bg-blue-50 text-blue-700 px-2 py-0.5 rounded text-xs">${r.payment_cycle||'月結'}</span></td>
             <td class="p-3 text-center">
@@ -1858,9 +2056,26 @@ async function loadSuppliers() {
   const data = await api('GET', '/suppliers')
   if (!data) return
   el.innerHTML = `
-  <div class="flex justify-end mb-4">
-    <button onclick="openSupplierModal()" class="btn-primary"><i class="fas fa-plus mr-1"></i>新增廠商</button>
+  <div class="flex gap-2 mb-4 flex-wrap items-center">
+    <input id="suppliers-search" type="text" placeholder="🔍 搜尋廠商名稱/代碼…" value="${state.search.suppliers}"
+      oninput="state.search.suppliers=this.value;renderSuppliersTable()"
+      style="flex:1;min-width:150px;max-width:260px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
+    <button onclick="openSupplierModal()" class="btn-primary" style="margin-left:auto;"><i class="fas fa-plus mr-1"></i>新增廠商</button>
   </div>
+  <div id="suppliers-table-wrap"></div>`
+
+  window._suppliersData = data
+  renderSuppliersTable()
+}
+
+function renderSuppliersTable() {
+  const wrap = document.getElementById('suppliers-table-wrap')
+  if (!wrap) return
+  const kw = state.search.suppliers
+  const data = (window._suppliersData || []).filter(r =>
+    matchSearch(r, ['name','code','contact','phone'], kw)
+  )
+  wrap.innerHTML = `
   <div class="card overflow-hidden">
     <div class="overflow-x-auto">
       <table class="w-full text-sm">
@@ -1872,11 +2087,12 @@ async function loadSuppliers() {
           <th class="text-center p-3">操作</th>
         </tr></thead>
         <tbody>
-          ${data.map(r => `
+          ${data.length === 0 ? `<tr><td colspan="5" class="p-8 text-center text-gray-400">${kw?'找不到「'+kw+'」':'尚無資料'}</td></tr>` :
+          data.map(r => `
           <tr class="border-b border-gray-50">
-            <td class="p-3 text-gray-500">${r.code}</td>
-            <td class="p-3 font-medium">${r.name}</td>
-            <td class="p-3 text-gray-600 hidden md:table-cell">${r.contact||'-'}</td>
+            <td class="p-3 text-gray-500">${hlSearch(r.code,kw)}</td>
+            <td class="p-3 font-medium">${hlSearch(r.name,kw)}</td>
+            <td class="p-3 text-gray-600 hidden md:table-cell">${hlSearch(r.contact||'-',kw)}</td>
             <td class="p-3 text-gray-500 text-xs hidden md:table-cell">${r.bank ? r.bank+' '+r.account : '-'}</td>
             <td class="p-3 text-center">
               <button onclick="openSupplierModal(${r.id})" class="text-blue-500 mr-2"><i class="fas fa-edit"></i></button>
@@ -1995,39 +2211,50 @@ async function loadProducts() {
 
   el.innerHTML = `
   <div class="filter-bar">
-    <button onclick="openProductModal()" class="btn-primary"><i class="fas fa-plus"></i> 新增商品</button>
+    <input id="products-search" type="text" placeholder="🔍 搜尋品項/類別…" value="${state.search.products}"
+      oninput="state.search.products=this.value;renderProductsTable()"
+      style="flex:1;min-width:120px;max-width:220px;padding:5px 10px;border:1px solid var(--border);border-radius:6px;background:var(--bg-2);color:var(--text);font-size:16px;">
+    <button onclick="openProductModal()" class="btn-primary" style="margin-left:auto;"><i class="fas fa-plus"></i> 新增商品</button>
   </div>
+  <div id="products-table-wrap"></div>`
+
+  window._productsData = data
+  window._productsSupMap = supMap
+  window._productsLastBuy = lastBuyById
+  renderProductsTable()
+}
+
+function renderProductsTable() {
+  const wrap = document.getElementById('products-table-wrap')
+  if (!wrap) return
+  const kw = state.search.products
+  const data = (window._productsData || []).filter(r =>
+    matchSearch(r, ['name','code','category'], kw)
+  )
+  const supMap = window._productsSupMap || {}
+  const lastBuyById = window._productsLastBuy || {}
+  wrap.innerHTML = `
   <div class="tbl-wrap">
     <table class="ftbl">
       <colgroup>
-        <col style="width:80px">   <!-- 最近日期 -->
-        <col style="width:100px">  <!-- 品項 -->
-        <col style="width:48px">   <!-- 類別 -->
-        <col style="width:40px">   <!-- 單位 -->
-        <col style="width:180px">  <!-- 供應商（報價） -->
-        <col style="width:68px">   <!-- 操作 -->
+        <col style="width:80px"><col style="width:100px"><col style="width:48px">
+        <col style="width:40px"><col style="width:180px"><col style="width:68px">
       </colgroup>
       <thead class="table-header"><tr>
-        <th>日期</th>
-        <th>品項</th>
-        <th class="td-ctr">類別</th>
-        <th class="td-ctr">單位</th>
-        <th>供應商報價</th>
-        <th class="td-ctr">操作</th>
+        <th>日期</th><th>品項</th><th class="td-ctr">類別</th>
+        <th class="td-ctr">單位</th><th>供應商報價</th><th class="td-ctr">操作</th>
       </tr></thead>
       <tbody>
         ${data.length === 0
-          ? '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-dim);">尚無資料</td></tr>'
+          ? `<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-dim);">${kw?'找不到「'+kw+'」':'尚無資料'}</td></tr>`
           : data.map(r => {
               const sups = supMap[r.id] || []
-              const supStr = sups.length
-                ? sups.map(s => `${s.name} $${s.price}`).join('　')
-                : '-'
+              const supStr = sups.length ? sups.map(s => `${s.name} $${s.price}`).join('　') : '-'
               const lastDate = lastBuyById[r.id] ? fmtDate(lastBuyById[r.id]) : '-'
               return `
               <tr>
                 <td class="tc-dim">${lastDate}</td>
-                <td class="fc tc-bold" title="${r.name}">${r.name}</td>
+                <td class="fc tc-bold" title="${r.name}">${hlSearch(r.name,kw)}</td>
                 <td class="td-ctr"><span class="${r.category==='生鮮'?'badge-fresh':r.category==='冷凍'?'badge-frozen':'badge-cooked'}">${r.category}</span></td>
                 <td class="td-ctr tc-dim">${r.unit||'-'}</td>
                 <td class="fc tc-sub" title="${supStr}">${supStr}</td>
@@ -2036,8 +2263,7 @@ async function loadProducts() {
                   <button onclick="deleteProduct(${r.id})" class="ic-btn ic-del"><i class="fas fa-trash"></i></button>
                 </td>
               </tr>`
-            }).join('')
-        }
+            }).join('')}
       </tbody>
     </table>
   </div>`
@@ -2465,8 +2691,8 @@ function renderStatement(container, data) {
         padding:20px 22px 16px;
         display:flex;align-items:flex-start;justify-content:space-between;">
         <div>
-          <div style="font-size: 27px;font-weight:900;letter-spacing:1px;margin-bottom:4px;">雞王生鮮配送</div>
-          <div style="font-size: 18px;color:#888;letter-spacing:.5px;">CHICKEN KING FRESH DELIVERY</div>
+          <div style="font-size: 27px;font-weight:900;letter-spacing:1px;margin-bottom:4px;">陸旺畜產實業有限公司</div>
+          <div style="font-size: 18px;color:#888;letter-spacing:.5px;">LU WANG LIVESTOCK INDUSTRY CO., LTD.</div>
         </div>
         <div style="text-align:right;">
           <div style="font-size: 25px;font-weight:800;letter-spacing:2px;color:#d4a34b;">出貨結算單</div>
@@ -2514,13 +2740,31 @@ function renderStatement(container, data) {
         </table>
       </div>
 
-      <!-- 底部備注 -->
+      <!-- 付款帳戶資訊 -->
       <div style="
-        background:#f7f7f7;border-top:1px solid #e0e0e0;
-        padding:10px 22px;
-        display:flex;align-items:center;justify-content:space-between;">
-        <span style="font-size: 18px;color:#aaa;">如有疑問請與業務確認，謝謝。</span>
-        <span style="font-size: 18px;color:#ccc;font-family:monospace;">NO.${date_start.replace(/-/g,'')}${summary.count}</span>
+        background:#1a1a1a;
+        padding:14px 22px;
+        display:flex;align-items:center;justify-content:space-between;
+        flex-wrap:wrap;gap:6px;">
+        <div style="display:flex;align-items:center;gap:12px;">
+          <div style="
+            background:#d4a34b;border-radius:4px;
+            padding:4px 10px;
+            font-size:16px;font-weight:800;color:#1a1a1a;
+            letter-spacing:1px;white-space:nowrap;">
+            匯款帳戶
+          </div>
+          <div>
+            <div style="font-size:17px;color:#aaa;line-height:1.3;">玉山銀行 808</div>
+            <div style="font-size:22px;font-weight:800;color:#ffffff;letter-spacing:2px;font-family:monospace;">
+              0842-979-176643
+            </div>
+          </div>
+        </div>
+        <div style="text-align:right;">
+          <div style="font-size:15px;color:#666;">如有疑問請與業務確認</div>
+          <div style="font-size:15px;color:#444;font-family:monospace;margin-top:2px;">NO.${date_start.replace(/-/g,'')}${summary.count}</div>
+        </div>
       </div>
     </div>
 

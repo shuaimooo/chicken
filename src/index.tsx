@@ -124,6 +124,20 @@ app.route('/api/prices', pricesRoute)
 // Health check
 app.get('/api/health', (c) => c.json({ status: 'ok', time: new Date().toISOString() }))
 
+// Reset all transaction data (keep customers/suppliers/products)
+app.post('/api/reset-data', async (c) => {
+  const db = c.env.DB
+  try {
+    const tables = ['sales','purchases','expenses','cashflow','receivables','payables','customer_prices','supplier_prices']
+    for (const t of tables) {
+      await db.prepare(`DELETE FROM ${t}`).run()
+    }
+    return c.json({ success: true, message: '所有交易資料已清除，基本資料保留' })
+  } catch (e: any) {
+    return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
 // Init DB
 app.post('/api/init-db', async (c) => {
   const db = c.env.DB
@@ -1569,8 +1583,14 @@ function getIndexHTML(): string {
       </button>
     </nav>
 
-    <div style="padding:10px 8px; border-top:1px solid rgba(255,255,255,.1);">
-      <div style="font-size: 15px; color:rgba(255,255,255,.25); text-align:center; letter-spacing:.5px;">CHICKEN KING ERP v2.0</div>
+    <div style="padding:10px 8px; border-top:1px solid rgba(255,255,255,.1); display:flex; flex-direction:column; gap:6px;">
+      <button onclick="confirmResetData()"
+        style="width:100%;padding:8px;background:rgba(220,38,38,.15);border:1px solid rgba(220,38,38,.35);
+               color:#f87171;border-radius:8px;cursor:pointer;font-size:15px;letter-spacing:.5px;
+               transition:all .2s;" onmouseover="this.style.background='rgba(220,38,38,.30)'" onmouseout="this.style.background='rgba(220,38,38,.15)'">
+        <i class="fas fa-trash-alt" style="margin-right:5px;"></i>重製資料
+      </button>
+      <div style="font-size: 14px; color:rgba(255,255,255,.2); text-align:center; letter-spacing:.5px;">CHICKEN KING ERP v2.0</div>
     </div>
   </div>
 
@@ -1585,6 +1605,11 @@ function getIndexHTML(): string {
       </div>
       <div class="header-right">
         <span id="today-date" class="date-chip" style="display:none;"></span>
+        <button onclick="goBack()" id="back-btn" title="上一步"
+          style="display:none;background:var(--bg-3);border:1px solid var(--border);color:var(--text);
+                 padding:7px 12px;border-radius:8px;cursor:pointer;font-size:17px;transition:opacity .2s;">
+          <i class="fas fa-arrow-left"></i>
+        </button>
         <button onclick="showPage('sales'); setTimeout(()=>openSaleModal?.(),100)" class="btn-primary" style="font-size: 17px; padding:7px 12px;">
           <i class="fas fa-plus"></i><span id="quick-btn-text">快速出貨</span>
         </button>
