@@ -21,8 +21,8 @@ function showToast(msg, type = 'success') {
   const el = document.getElementById('toast')
   const inner = el.querySelector('div')
   const icon = type === 'success' ? '✓' : '⚠'
-  inner.style.background = type === 'success' ? '#1e293b' : '#dc2626'
-  inner.innerHTML = `<span style="font-size:15px">${icon}</span><span>${msg}</span>`
+  inner.style.background = type === 'success' ? '#005500' : '#aa0000'
+  inner.innerHTML = `<span style="font-size: 30px">${icon}</span><span>${msg}</span>`
   el.style.display = 'block'
   clearTimeout(el._t)
   el._t = setTimeout(() => { el.style.display = 'none' }, 2800)
@@ -112,125 +112,112 @@ async function loadDashboard() {
 
   el.innerHTML = `
   <!-- KPI Cards -->
-  <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:12px; margin-bottom:14px;" class="md:grid-cols-4">
-    <div class="kpi-card" style="background:linear-gradient(135deg,#e63946,#c1121f)">
-      <div class="kpi-label"><i class="fas fa-truck" style="margin-right:4px"></i>今日出貨</div>
+  <div style="display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:12px;">
+    <div class="kpi-card gold">
+      <div class="kpi-label">今日出貨</div>
       <div class="kpi-value">$${fmt(data.today.sales_amount)}</div>
-      <div class="kpi-sub">${data.today.sales_count} 筆紀錄</div>
+      <div class="kpi-sub">${data.today.sales_count} 筆</div>
     </div>
-    <div class="kpi-card" style="background:linear-gradient(135deg,#10b981,#059669)">
-      <div class="kpi-label"><i class="fas fa-chart-line" style="margin-right:4px"></i>本月營收</div>
+    <div class="kpi-card green">
+      <div class="kpi-label">本月營收</div>
       <div class="kpi-value">$${fmt(data.month.revenue)}</div>
-      <div class="kpi-sub">毛利率 ${data.month.gross_margin}%</div>
+      <div class="kpi-sub">毛利 ${data.month.gross_margin}%</div>
     </div>
-    <div class="kpi-card" style="background:linear-gradient(135deg,#f59e0b,#d97706)">
-      <div class="kpi-label"><i class="fas fa-hand-holding-usd" style="margin-right:4px"></i>應收帳款</div>
+    <div class="kpi-card red">
+      <div class="kpi-label">應收帳款</div>
       <div class="kpi-value">$${fmt(data.receivable)}</div>
-      <div class="kpi-sub">待收款項</div>
+      <div class="kpi-sub">待收款</div>
     </div>
-    <div class="kpi-card" style="background:linear-gradient(135deg,#6366f1,#4f46e5)">
-      <div class="kpi-label"><i class="fas fa-bullseye" style="margin-right:4px"></i>年度達成</div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">年度達成</div>
       <div class="kpi-value">${data.year.achievement}%</div>
-      <div class="kpi-sub">$${fmt(data.year.revenue)} / $${fmt(data.year.target)}</div>
+      <div class="kpi-sub">目標 $${fmt(data.year.target)}</div>
     </div>
   </div>
 
-  <!-- 本月損益 & 資金狀況 -->
-  <div style="display:grid; grid-template-columns:1fr; gap:12px; margin-bottom:14px;" class="md:grid-cols-2">
-    <div class="card" style="padding:18px 20px;">
-      <div style="font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; gap:8px; font-size:14px;">
-        <span style="width:32px;height:32px;background:#ecfdf5;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;"><i class="fas fa-chart-line" style="color:#10b981"></i></span>
-        本月損益
-      </div>
-      <div style="display:flex; flex-direction:column; gap:0;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13.5px;color:var(--muted)">營業收入</span>
-          <span class="amount-positive" style="font-size:14px;">+$${fmt(data.month.revenue)}</span>
+  <!-- 本月損益 + 趨勢圖 -->
+  <div style="display:grid; grid-template-columns:1fr 1.6fr; gap:10px; margin-bottom:12px;">
+    <!-- 左：損益明細 -->
+    <div class="card" style="padding:10px 12px;">
+      <div style="font-size: 22px;font-weight:700;color:var(--text);margin-bottom:8px;">本月損益</div>
+      <div style="display:flex;flex-direction:column;gap:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size: 22px;color:var(--text-2);">營業收入</span>
+          <span class="amount-positive" style="font-size: 23px;font-weight:700;">+$${fmt(data.month.revenue)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13.5px;color:var(--muted)">進貨成本</span>
-          <span class="amount-negative" style="font-size:14px;">-$${fmt(data.month.cost)}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size: 22px;color:var(--text-2);">進貨成本</span>
+          <span class="amount-negative" style="font-size: 23px;font-weight:700;">-$${fmt(data.month.cost)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13.5px;color:var(--muted)">費用支出</span>
-          <span class="amount-negative" style="font-size:14px;">-$${fmt(data.month.expense)}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:6px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size: 22px;color:var(--text-2);">費用支出</span>
+          <span class="amount-negative" style="font-size: 23px;font-weight:700;">-$${fmt(data.month.expense)}</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;">
-          <span style="font-weight:700;color:var(--text);">月度淨利</span>
-          <span style="font-weight:800;font-size:20px;" class="${data.month.net >= 0 ? 'amount-positive' : 'amount-negative'}">$${fmt(data.month.net)}</span>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:8px 0 0;">
+          <span style="font-size: 22px;font-weight:700;color:var(--text);">月度淨利</span>
+          <span style="font-size: 30px;font-weight:800;" class="${data.month.net >= 0 ? 'amount-positive' : 'amount-negative'}">$${fmt(data.month.net)}</span>
         </div>
       </div>
-    </div>
-    <div class="card" style="padding:18px 20px;">
-      <div style="font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; gap:8px; font-size:14px;">
-        <span style="width:32px;height:32px;background:#eff6ff;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;"><i class="fas fa-balance-scale" style="color:#3b82f6"></i></span>
-        資金狀況
+      <hr style="border:none;border-top:1px solid var(--border);margin:10px 0;">
+      <div style="font-size: 22px;font-weight:700;color:var(--text);margin-bottom:6px;">資金狀況</div>
+      <div style="display:flex;flex-direction:column;gap:0;">
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size: 22px;color:var(--text-2);">應收</span>
+          <span style="font-size: 23px;font-weight:700;color:var(--green);">$${fmt(data.receivable)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);">
+          <span style="font-size: 22px;color:var(--text-2);">待付</span>
+          <span style="font-size: 23px;font-weight:700;color:var(--red);">$${fmt(data.payable)}</span>
+        </div>
+        <div style="display:flex;justify-content:space-between;align-items:center;padding:5px 0;">
+          <span style="font-size: 22px;color:var(--text-2);">缺口</span>
+          <span style="font-size: 23px;font-weight:700;color:${data.cash_gap >= 0 ? 'var(--green)' : 'var(--red)'};">$${fmt(data.cash_gap)}</span>
+        </div>
       </div>
-      <div style="display:flex; flex-direction:column; gap:0;">
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13.5px;color:var(--muted)">應收帳款</span>
-          <span style="font-weight:700;color:var(--success);">$${fmt(data.receivable)}</span>
+      <div style="margin-top:8px;">
+        <div style="display:flex;justify-content:space-between;font-size: 21px;color:var(--text-dim);margin-bottom:4px;">
+          <span>年度達成</span><span>${data.year.achievement}%</span>
         </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13.5px;color:var(--muted)">待付帳款</span>
-          <span style="font-weight:700;color:var(--brand);">$${fmt(data.payable)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:9px 0;border-bottom:1px solid var(--border);">
-          <span style="font-size:13.5px;color:var(--muted)">資金缺口</span>
-          <span style="font-weight:700;color:${data.cash_gap >= 0 ? 'var(--success)' : 'var(--brand)'};">$${fmt(data.cash_gap)}</span>
-        </div>
-        <div style="display:flex;justify-content:space-between;align-items:center;padding:12px 0 0;">
-          <span style="font-weight:700;color:var(--text);">年度達成率</span>
-          <div style="display:flex;align-items:center;gap:8px;">
-            <div style="width:80px;height:6px;background:#e2e8f0;border-radius:3px;overflow:hidden;">
-              <div style="height:100%;background:var(--brand);border-radius:3px;width:${Math.min(100,data.year.achievement)}%;"></div>
-            </div>
-            <span style="font-weight:800;font-size:16px;">${data.year.achievement}%</span>
-          </div>
+        <div style="height:8px;background:#cccccc;overflow:hidden;border:1px solid #aaaaaa;">
+          <div style="height:100%;background:var(--win-header);width:${Math.min(100,data.year.achievement)}%;transition:width .5s;"></div>
         </div>
       </div>
     </div>
-  </div>
 
-  <!-- 月度趨勢圖 -->
-  <div class="card" style="padding:18px 20px; margin-bottom:14px;">
-    <div style="font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; gap:8px; font-size:14px;">
-      <span style="width:32px;height:32px;background:#fef2f2;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;"><i class="fas fa-chart-bar" style="color:var(--brand)"></i></span>
-      月度營收趨勢
+    <!-- 右：趨勢圖 -->
+    <div class="card" style="padding:10px 12px;display:flex;flex-direction:column;">
+      <div style="font-size: 22px;font-weight:700;color:var(--text);margin-bottom:8px;">月度營收趨勢</div>
+      <div style="flex:1; position:relative; min-height:160px;">
+        <canvas id="chart-monthly" style="position:absolute;inset:0;width:100%!important;height:100%!important;"></canvas>
+      </div>
     </div>
-    <canvas id="chart-monthly" height="70"></canvas>
   </div>
 
   <!-- 最近出貨 -->
-  <div class="card" style="padding:18px 20px;">
-    <div style="font-weight:700; color:var(--text); margin-bottom:14px; display:flex; align-items:center; justify-content:space-between; font-size:14px;">
-      <div style="display:flex;align-items:center;gap:8px;">
-        <span style="width:32px;height:32px;background:#f8fafc;border-radius:10px;display:flex;align-items:center;justify-content:center;font-size:14px;"><i class="fas fa-truck" style="color:var(--muted)"></i></span>
-        最近出貨
-      </div>
-      <button onclick="showPage('sales')" style="font-size:12.5px;color:var(--brand);background:none;border:none;cursor:pointer;font-weight:600;">查看全部 →</button>
+  <div class="tbl-wrap">
+    <div style="display:flex;align-items:center;justify-content:space-between;padding:10px 12px 8px;">
+      <span style="font-size: 22px;font-weight:700;color:var(--text);">最近出貨</span>
+      <button onclick="showPage('sales')" class="btn-secondary" style="font-size: 22px;">全部 →</button>
     </div>
-    <div style="overflow-x:auto;">
-      <table style="width:100%;border-collapse:collapse;font-size:13.5px;">
-        <thead class="table-header"><tr>
-          <th style="text-align:left;padding:8px 10px;white-space:nowrap;">日期</th>
-          <th style="text-align:left;padding:8px 10px;">客戶</th>
-          <th style="text-align:left;padding:8px 10px;display:none;" class="sm-show">商品</th>
-          <th style="text-align:right;padding:8px 10px;white-space:nowrap;">金額</th>
-          <th style="text-align:center;padding:8px 10px;white-space:nowrap;">狀態</th>
-        </tr></thead>
-        <tbody>
-          ${(data.recent_sales || []).map(s => `
-          <tr style="border-bottom:1px solid #f1f5f9;">
-            <td style="padding:9px 10px;color:var(--muted);font-size:12.5px;white-space:nowrap;">${fmtDate(s.date)}</td>
-            <td style="padding:9px 10px;font-weight:600;color:var(--text);">${s.customer_name}</td>
-            <td style="padding:9px 10px;color:var(--muted);">${s.product_name}</td>
-            <td style="padding:9px 10px;text-align:right;font-weight:700;">$${fmt(s.total_amount)}</td>
-            <td style="padding:9px 10px;text-align:center;"><span class="${getStatusClass(s.payment_status)}">${s.payment_status}</span></td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
+    <table>
+      <thead class="table-header"><tr>
+        <th style="text-align:left;">日期</th>
+        <th style="text-align:left;">客戶</th>
+        <th style="text-align:left;">商品</th>
+        <th style="text-align:right;">金額</th>
+        <th style="text-align:center;">狀態</th>
+      </tr></thead>
+      <tbody>
+        ${(data.recent_sales || []).map(s => `
+        <tr>
+          <td class="tc-dim">${fmtDate(s.date)}</td>
+          <td class="fc tc-bold" title="${s.customer_name}">${s.customer_name}</td>
+          <td class="fc" title="${s.product_name}">${s.product_name}</td>
+          <td class="td-num tc-gold">$${fmt(s.total_amount)}</td>
+          <td class="td-ctr"><span class="${getStatusClass(s.payment_status)}">${s.payment_status}</span></td>
+        </tr>`).join('')}
+      </tbody>
+    </table>
   </div>
   `
 
@@ -249,20 +236,23 @@ async function loadDashboard() {
         datasets: [{
           label: '營收',
           data: values,
-          backgroundColor: values.map((v, i) => i === state.month - 1 ? '#e63946' : 'rgba(230,57,70,.18)'),
-          borderRadius: 8,
+          backgroundColor: values.map((v, i) => i === state.month - 1 ? '#005500' : '#99bb99'),
+          borderColor: values.map((v, i) => i === state.month - 1 ? '#003300' : '#669966'),
+          borderWidth: 1,
+          borderRadius: 0,
           borderSkipped: false,
         }]
       },
       options: {
         responsive: true,
+        maintainAspectRatio: false,
         plugins: {
           legend: { display: false },
-          tooltip: { callbacks: { label: ctx => ' $' + fmt(ctx.raw) }, backgroundColor: '#1e293b', padding: 10, cornerRadius: 8 }
+          tooltip: { callbacks: { label: ctx => ' $' + fmt(ctx.raw) }, backgroundColor: '#ffffff', titleColor: '#000000', bodyColor: '#000000', padding: 8, cornerRadius: 0, borderColor: '#808080', borderWidth: 1 }
         },
         scales: {
-          y: { ticks: { callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0)+'K' : v), font: { size: 11 } }, grid: { color: '#f1f5f9' } },
-          x: { ticks: { font: { size: 11 } }, grid: { display: false } }
+          y: { ticks: { callback: v => '$' + (v >= 1000 ? (v/1000).toFixed(0)+'K' : v), font: { size: 11 }, color: '#333333' }, grid: { color: '#dddddd' } },
+          x: { ticks: { font: { size: 11 }, color: '#333333' }, grid: { display: false } }
         }
       }
     })
@@ -282,67 +272,135 @@ async function loadSales() {
   const data = await api('GET', `/sales?year=${y}&month=${m}`)
   if (!data) return
 
-  const totalAmt = data.reduce((s, r) => s + (r.total_amount || 0), 0)
-  const unpaid = data.filter(r => ['待付款','未付款'].includes(r.payment_status)).reduce((s, r) => s + (r.total_amount || 0), 0)
+  // ── 合併：同日期 + 同客戶 + 同品項 → 加總 KG / 數量 / 金額
+  // key = date|customer_id|product_id
+  const merged = []
+  const keyMap = {}
+  for (const r of data) {
+    const key = `${r.date}|${r.customer_id||r.customer_name}|${r.product_id||r.product_name}`
+    if (keyMap[key] !== undefined) {
+      const g = merged[keyMap[key]]
+      g.total_kg      = parseFloat(((g.total_kg || 0) + parseFloat(r.spec || 0)).toFixed(2))
+      g.total_qty    += parseFloat(r.quantity || 0)
+      g.total_amount += parseFloat(r.total_amount || 0)
+      g.ids.push(r.id)
+      // 狀態：若有任何待付則顯示待付
+      if (['待付款','未付款'].includes(r.payment_status)) g.payment_status = r.payment_status
+    } else {
+      keyMap[key] = merged.length
+      merged.push({
+        ...r,
+        total_kg:     parseFloat(r.spec || 0),
+        total_qty:    parseFloat(r.quantity || 0),
+        total_amount: parseFloat(r.total_amount || 0),
+        ids: [r.id],
+      })
+    }
+  }
+
+  const totalAmt = merged.reduce((s, r) => s + r.total_amount, 0)
+  const unpaid   = merged.filter(r => ['待付款','未付款'].includes(r.payment_status)).reduce((s, r) => s + r.total_amount, 0)
 
   el.innerHTML = `
-  <div class="flex items-center gap-2 mb-4 flex-wrap">
-    <select id="filter-year" class="input-field" style="width:90px" onchange="state.year=parseInt(this.value);loadSales()">
+  <!-- 標題列 -->
+  <div class="filter-bar">
+    <select onchange="state.year=parseInt(this.value);loadSales()">
       ${[2024,2025,2026,2027].map(y => `<option value="${y}" ${y===state.year?'selected':''}>${y}年</option>`).join('')}
     </select>
-    <select id="filter-month" class="input-field" style="width:90px" onchange="state.month=parseInt(this.value);loadSales()">
+    <select onchange="state.month=parseInt(this.value);loadSales()">
       ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===state.month?'selected':''}>${i+1}月</option>`).join('')}
     </select>
-    <div class="flex-1"></div>
-    <button onclick="openSaleModal()" class="btn-primary"><i class="fas fa-plus mr-1"></i>新增出貨</button>
+    <button onclick="openSaleModal()" class="btn-primary" style="margin-left:auto;"><i class="fas fa-plus"></i>新增出貨</button>
   </div>
-  <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-    <div class="card p-3 text-center">
-      <div class="text-xs text-gray-500 mb-1">本期筆數</div>
-      <div class="text-xl font-bold text-red-600">${data.length}</div>
+
+  <!-- 摘要卡片 -->
+  <div class="sum-cards">
+    <div class="sum-card">
+      <div class="sum-card-label">筆數</div>
+      <div class="sum-card-value blue">${merged.length}</div>
     </div>
-    <div class="card p-3 text-center">
-      <div class="text-xs text-gray-500 mb-1">本期總額</div>
-      <div class="text-lg font-bold text-green-600">$${fmt(totalAmt)}</div>
+    <div class="sum-card">
+      <div class="sum-card-label">本期總額</div>
+      <div class="sum-card-value green">$${fmt(totalAmt)}</div>
     </div>
-    <div class="card p-3 text-center col-span-2 md:col-span-1">
-      <div class="text-xs text-gray-500 mb-1">待收款</div>
-      <div class="text-lg font-bold text-amber-600">$${fmt(unpaid)}</div>
+    <div class="sum-card">
+      <div class="sum-card-label">待收款</div>
+      <div class="sum-card-value red">$${fmt(unpaid)}</div>
     </div>
   </div>
-  <div class="card overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="table-header"><tr>
-          <th class="text-left p-3">日期</th>
-          <th class="text-left p-3">客戶</th>
-          <th class="text-left p-3 hidden md:table-cell">商品</th>
-          <th class="text-right p-3 hidden sm:table-cell">數量</th>
-          <th class="text-right p-3">金額</th>
-          <th class="text-center p-3">狀態</th>
-          <th class="text-center p-3">操作</th>
-        </tr></thead>
-        <tbody>
-          ${data.length === 0 ? '<tr><td colspan="7" class="p-8 text-center text-gray-400">尚無資料</td></tr>' :
-            data.map(r => `
-            <tr class="border-b border-gray-50">
-              <td class="p-3 text-gray-500 whitespace-nowrap">${fmtDate(r.date)}</td>
-              <td class="p-3 font-medium">${r.customer_name}</td>
-              <td class="p-3 text-gray-600 hidden md:table-cell">${r.product_name}${r.spec ? ' '+r.spec+'KG' : ''}</td>
-              <td class="p-3 text-right text-gray-600 hidden sm:table-cell">${r.quantity}${r.qty_unit||''}</td>
-              <td class="p-3 text-right font-semibold">$${fmt(r.total_amount)}</td>
-              <td class="p-3 text-center">
-                <button onclick="cycleSaleStatus(${r.id},'${r.payment_status}')" class="${getStatusClass(r.payment_status)}">${r.payment_status}</button>
-              </td>
-              <td class="p-3 text-center">
-                <button onclick="openSaleModal(${r.id})" class="text-blue-500 mr-2"><i class="fas fa-edit"></i></button>
-                <button onclick="deleteSale(${r.id})" class="text-red-400"><i class="fas fa-trash"></i></button>
-              </td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
-    </div>
+
+  <div class="tbl-wrap">
+    <table class="ftbl">
+      <colgroup>
+        <col style="width:88px">   <!-- 日期 -->
+        <col style="width:72px">   <!-- 客戶 -->
+        <col style="width:46px">   <!-- 類別 -->
+        <col style="width:72px">   <!-- 品項 -->
+        <col style="width:52px">   <!-- KG -->
+        <col style="width:44px">   <!-- 量 -->
+        <col style="width:54px">   <!-- 單價 -->
+        <col style="width:70px">   <!-- 金額 -->
+        <col style="width:54px">   <!-- 狀態 -->
+        <col style="width:56px">   <!-- 操作 -->
+      </colgroup>
+      <thead class="table-header"><tr>
+        <th>日期</th>
+        <th>客戶</th>
+        <th class="td-ctr">類別</th>
+        <th>品項</th>
+        <th class="td-num">KG</th>
+        <th class="td-num">數量</th>
+        <th class="td-num">單價</th>
+        <th class="td-num">金額</th>
+        <th class="td-ctr">狀態</th>
+        <th class="td-ctr">操作</th>
+      </tr></thead>
+      <tbody>
+        ${merged.length === 0
+          ? '<tr><td colspan="10" style="text-align:center;padding:28px;color:var(--text-dim);">尚無資料</td></tr>'
+          : merged.map(r => `
+          <tr>
+            <td class="fc tc-dim">${fmtDate(r.date)}</td>
+            <td class="fc tc-bold" title="${r.customer_name}">${r.customer_name}</td>
+            <td class="td-ctr">${r.category ? `<span class="${r.category==='生鮮'?'badge-fresh':r.category==='冷凍'?'badge-frozen':'badge-cooked'}">${r.category}</span>` : '-'}</td>
+            <td class="fc tc-sub" title="${r.product_name}">${r.product_name}</td>
+            <td class="td-num tc-blue">${r.total_kg > 0 ? parseFloat(r.total_kg).toFixed(1) : '-'}</td>
+            <td class="td-num">${Math.round(r.total_qty)}</td>
+            <td class="td-num">${r.unit_price ? parseFloat(r.unit_price).toFixed(1) : '-'}</td>
+            <td class="td-num tc-gold">$${fmt(r.total_amount)}</td>
+            <td class="td-ctr">
+              <button onclick="cycleSaleStatus(${r.ids[0]},'${r.payment_status}')" class="${getStatusClass(r.payment_status)}" style="cursor:pointer;">${r.payment_status}</button>
+            </td>
+            <td class="td-ctr">
+              ${r.ids.length === 1
+                ? `<button onclick="openSaleModal(${r.ids[0]})" class="ic-btn ic-edit"><i class="fas fa-edit"></i></button><button onclick="deleteSale(${r.ids[0]})" class="ic-btn ic-del"><i class="fas fa-trash"></i></button>`
+                : `<button onclick="showSaleGroup([${r.ids.join(',')}])" class="ic-btn ic-grp" title="${r.ids.length}筆"><i class="fas fa-layer-group"></i>${r.ids.length}</button>`
+              }
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
   </div>`
+}
+
+// 合併列有多筆時，展開顯示明細讓使用者選擇編輯/刪除哪一筆
+function showSaleGroup(ids) {
+  const listHTML = ids.map((id, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
+      <span style="color:var(--text-2); font-size: 28px;">第 ${i+1} 筆 (ID: ${id})</span>
+      <div style="display:flex; gap:10px;">
+        <button onclick="openSaleModal(${id}); closeModal();" class="btn-secondary" style="font-size: 26px; padding:6px 14px;"><i class="fas fa-edit"></i> 編輯</button>
+        <button onclick="deleteSale(${id}); closeModal();" class="btn-danger" style="font-size: 26px; padding:6px 12px;"><i class="fas fa-trash"></i> 刪除</button>
+      </div>
+    </div>`).join('')
+  showModal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title"><i class="fas fa-layer-group"></i>合併筆數 — 選擇操作</div>
+    ${listHTML}
+    <div style="margin-top:14px; text-align:right;">
+      <button onclick="closeModal()" class="btn-secondary">關閉</button>
+    </div>
+  `)
 }
 
 async function cycleSaleStatus(id, current) {
@@ -359,130 +417,313 @@ async function deleteSale(id) {
   loadSales()
 }
 
+// ═══════════════════════════════════════════════════════
+// 計價公式：
+// 生鮮：公斤 ÷ 0.6 × 單價
+// 冷凍：KG × 單價
+// 熟雞：(生鮮 或 冷凍) + (隻數 × 煮工費)
+// ═══════════════════════════════════════════════════════
+
+// 取得商品資訊
+function getSaleCalcInfo() {
+  const productSel = document.getElementById('s-product')
+  if (!productSel) return null
+
+  const opt = productSel.options[productSel.selectedIndex]
+  if (!opt || !opt.value) return null
+
+  const category = opt.dataset.category || ''
+  const cookType = document.getElementById('s-cook-type')?.value || '生鮮'
+
+  return {
+    category, // 生鮮 / 冷凍 / 熟雞
+    effectiveCategory: category === '熟雞' ? cookType : category,
+    isCooked: category === '熟雞'
+  }
+}
+
+// 主計算
+function calcSaleTotal() {
+  const spec  = parseFloat(document.getElementById('s-spec')?.value) || 0    // 規格KG
+  const count = parseFloat(document.getElementById('s-qty')?.value) || 0     // 數量（隻）
+  const price = parseFloat(document.getElementById('s-price')?.value) || 0   // 單價
+  const cook  = parseFloat(document.getElementById('s-cook-fee')?.value) || 0
+
+  const info = getSaleCalcInfo()
+  if (!info) return
+
+  const { effectiveCategory, isCooked } = info
+
+  let base = 0
+  let formula = ''
+
+  // ───── 計價公式 ─────
+  if (effectiveCategory === '生鮮') {
+    // 生鮮：KG ÷ 0.6 × 單價（斤計）
+    base = (spec / 0.6) * price
+    formula = `${spec}KG ÷ 0.6 × $${price}/斤 = $${Math.round(base).toLocaleString()}`
+  } else if (effectiveCategory === '冷凍') {
+    // 冷凍：KG × 單價/KG × 數量
+    base = spec * price * count
+    formula = `${spec}KG × $${price}/KG × ${count}隻 = $${Math.round(base).toLocaleString()}`
+  } else {
+    base = spec * price * count
+    formula = `${spec} × $${price} × ${count} = $${Math.round(base).toLocaleString()}`
+  }
+
+  // ───── 熟雞加工費 ─────
+  let cookTotal = 0
+  let cookNote = ''
+  if (isCooked && cook > 0 && count > 0) {
+    cookTotal = cook * count
+    cookNote = ` + 煮工費 $${cook} × ${count}隻 = $${Math.round(cookTotal).toLocaleString()}`
+  }
+
+  // ───── 總計 ─────
+  const total = base + cookTotal
+  const totalEl = document.getElementById('s-total')
+  if (totalEl) totalEl.value = total > 0 ? Math.round(total) : ''
+
+  // 計算提示
+  const hint = document.getElementById('s-calc-hint')
+  if (hint && spec > 0 && price > 0) {
+    hint.textContent = formula + cookNote + `  →  合計 $${Math.round(total).toLocaleString()}`
+    hint.style.display = 'block'
+  } else if (hint) {
+    hint.style.display = 'none'
+  }
+}
+
 async function openSaleModal(id = null) {
   state.editingId = id
   let sale = {}
   if (id) {
-    const list = await api('GET', `/sales?year=2026`)
+    const list = await api('GET', `/sales?year=${state.year}`)
     sale = list?.find(r => r.id === id) || {}
   }
 
+  // 取得已選商品的 category（編輯時）
+  const editCategory = sale.category || ''
+  const isCooked = editCategory === '熟雞'
+  // 從 note 中解析煮工費（格式: "煮工費:50" 或 sale.cook_fee）
+  const cookFeeMatch = (sale.note || '').match(/煮工費[:：](\d+)/)
+  const cookFee = cookFeeMatch ? cookFeeMatch[1] : ''
+
   showModal(`
   <div class="modal-box">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-bold">${id ? '編輯' : '新增'}出貨記錄</h2>
-      <button onclick="closeModal()" class="text-gray-400 text-xl">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">
+      <i class="fas fa-${id ? 'edit' : 'plus-circle'}"></i>
+      ${id ? '編輯' : '新增'}出貨記錄
+      <button class="btn-secondary" style="margin-left:auto;font-size: 24px;padding:2px 8px;" onclick="closeModal()">✕</button>
     </div>
-    <div class="space-y-3">
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">日期 *</label>
-          <input type="date" id="s-date" class="input-field" value="${sale.date ? fmtDate(sale.date) : today()}">
-        </div>
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">狀態</label>
-          <select id="s-status" class="input-field">
-            ${['待付款','已付款','未付款'].map(s => `<option value="${s}" ${sale.payment_status===s?'selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
+
+    <!-- 日期 + 付款狀態 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;padding:0 14px;">
+      <div>
+        <label>日期 *</label>
+        <input type="date" id="s-date" class="input-field" value="${sale.date ? fmtDate(sale.date) : today()}">
       </div>
       <div>
-        <label class="text-sm text-gray-600 mb-1 block">客戶 *</label>
-        <select id="s-customer" class="input-field" onchange="onCustomerChange()">
-          <option value="">-- 選擇客戶 --</option>
-          ${state.customers.map(c => `<option value="${c.id}" data-name="${c.name}" ${sale.customer_id==c.id?'selected':''}>${c.name}</option>`).join('')}
+        <label>付款狀態 *</label>
+        <select id="s-status" class="input-field">
+          ${['待付款','已付款','未付款'].map(s => `<option value="${s}" ${sale.payment_status===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">商品 *</label>
-          <select id="s-product" class="input-field" onchange="onProductChange()">
-            <option value="">-- 選擇商品 --</option>
-            ${state.products.map(p => `<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit}" data-category="${p.category}" ${sale.product_id==p.id?'selected':''}>${p.name}(${p.category})</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">規格(KG)</label>
-          <input type="number" id="s-spec" class="input-field" value="${sale.spec||''}" placeholder="如 2.5">
-        </div>
-      </div>
-      <div class="grid grid-cols-3 gap-3">
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">數量 *</label>
-          <input type="number" id="s-qty" class="input-field" value="${sale.quantity||''}" oninput="calcSaleTotal()">
-        </div>
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">單位</label>
-          <select id="s-qty-unit" class="input-field">
-            ${['隻','件','KG','斤','盒'].map(u => `<option value="${u}" ${sale.qty_unit===u?'selected':''}>${u}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">單價 *</label>
-          <input type="number" id="s-price" class="input-field" value="${sale.unit_price||''}" oninput="calcSaleTotal()">
-        </div>
+    </div>
+
+    <!-- 客戶 -->
+    <div style="margin-bottom:10px;">
+      <label>客戶 *</label>
+      <select id="s-customer" class="input-field" onchange="onCustomerChange()">
+        <option value="">-- 選擇客戶 --</option>
+        ${state.customers.map(c => `<option value="${c.id}" data-name="${c.name}" ${sale.customer_id==c.id?'selected':''}>${c.name}</option>`).join('')}
+      </select>
+    </div>
+
+    <!-- 品項 + 類別 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;padding:0 14px;">
+      <div>
+        <label>品項 *</label>
+        <select id="s-product" class="input-field" onchange="onProductChange()">
+          <option value="">-- 選擇商品 --</option>
+          ${state.products.map(p => `<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit}" data-category="${p.category}" ${sale.product_id==p.id?'selected':''}>${p.name}（${p.category}）</option>`).join('')}
+        </select>
       </div>
       <div>
-        <label class="text-sm text-gray-600 mb-1 block">總金額</label>
-        <input type="number" id="s-total" class="input-field bg-gray-50" value="${sale.total_amount||''}" readonly>
-      </div>
-      <div>
-        <label class="text-sm text-gray-600 mb-1 block">備註</label>
-        <input type="text" id="s-note" class="input-field" value="${sale.note||''}" placeholder="選填">
+        <label>類別 *</label>
+        <input type="text" id="s-category-display" class="input-field" readonly
+               style="background:var(--bg-2);color:var(--text-dim);"
+               value="${sale.category||''}" placeholder="選商品後自動帶入">
       </div>
     </div>
-    <div class="flex gap-3 mt-4">
-      <button onclick="closeModal()" class="btn-secondary flex-1">取消</button>
-      <button onclick="saveSale()" class="btn-primary flex-1">儲存</button>
+
+    <!-- 規格KG + 數量 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;padding:0 14px;">
+      <div>
+        <label>規格(KG) ─ 每隻重</label>
+        <input type="number" id="s-spec" class="input-field" value="${sale.spec||''}"
+               step="0.1" min="0" max="999.9" placeholder="XXX.X" oninput="calcSaleTotal()"
+               style="text-align:right;">
+      </div>
+      <div>
+        <label id="s-qty-label">數量（隻/件）*</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="s-qty" class="input-field" value="${sale.quantity||''}"
+                 step="1" min="0" max="999" placeholder="XXX" oninput="calcSaleTotal()"
+                 style="text-align:right;flex:1;">
+          <select id="s-qty-unit" class="input-field" style="width:60px;padding:9px 4px;flex-shrink:0;">
+            <option value="隻" ${(sale.qty_unit||'隻')==='隻'?'selected':''}>隻</option>
+            <option value="件" ${(sale.qty_unit||'隻')==='件'?'selected':''}>件</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 熟雞專用：底層類型 -->
+    <div id="s-cook-section" style="display:${isCooked?'grid':'none'};grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;
+         background:rgba(212,163,75,.06);border:1px solid rgba(212,163,75,.15);border-radius:8px;padding:10px;">
+      <div>
+        <label style="color:var(--orange);">熟雞底層類型 *</label>
+        <select id="s-cook-type" class="input-field" onchange="calcSaleTotal()">
+          <option value="生鮮" ${(sale.unit||'')!=='KG'?'selected':''}>生鮮雞（KG÷0.6×單價）</option>
+          <option value="冷凍" ${(sale.unit||'')==='KG'?'selected':''}>冷凍雞（KG×單價×數量）</option>
+        </select>
+      </div>
+      <div>
+        <label style="color:var(--orange);">煮工費（元/隻）</label>
+        <input type="number" id="s-cook-fee" class="input-field" value="${cookFee}" placeholder="如 50" oninput="calcSaleTotal()">
+      </div>
+    </div>
+
+    <!-- 單價 -->
+    <div style="margin-bottom:10px;">
+      <label id="s-price-label">單價 *</label>
+      <input type="number" id="s-price" class="input-field" value="${sale.unit_price||''}"
+             step="0.1" min="0" max="999.9" placeholder="XXX.X" oninput="calcSaleTotal()"
+             style="text-align:right;">
+    </div>
+
+    <!-- 計算公式提示 -->
+    <div id="s-calc-hint" style="display:none;font-size: 26px;color:var(--orange);
+         background:rgba(212,163,75,.06);border:1px solid rgba(212,163,75,.15);
+         border-radius:6px;padding:7px 10px;margin-bottom:10px;letter-spacing:.3px;"></div>
+
+    <!-- 合計 + 差額 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;padding:0 14px;">
+      <div>
+        <label>合計金額（自動計算）</label>
+        <input type="number" id="s-total" class="input-field" value="${sale.total_amount||''}"
+               style="background:var(--bg-2);font-weight:700;font-size: 30px;color:var(--orange);text-align:right;"
+               placeholder="XXXXXX" readonly>
+      </div>
+      <div>
+        <label>差額（手動調整）</label>
+        <input type="number" id="s-diff" class="input-field" value="${sale.diff_amount||''}"
+               placeholder="正負皆可" oninput="">
+      </div>
+    </div>
+
+    <!-- 備註 -->
+    <div style="margin-bottom:14px;">
+      <label>備註</label>
+      <input type="text" id="s-note" class="input-field" value="${sale.note||''}" placeholder="選填">
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeModal()" class="btn-secondary" style="flex:1;">取消</button>
+      <button onclick="saveSale()" class="btn-primary" style="flex:1;">
+        <i class="fas fa-check"></i> 儲存
+      </button>
     </div>
   </div>`)
+
+  // 初始化：若有既有商品，觸發一次計算
+  if (sale.product_id) setTimeout(() => calcSaleTotal(), 50)
 }
 
 function onCustomerChange() {
-  const sel = document.getElementById('s-customer')
-  const opt = sel.options[sel.selectedIndex]
-  // Could auto-fill price from customer_prices
+  // 未來可自動帶入客戶報價
 }
 
 function onProductChange() {
   const sel = document.getElementById('s-product')
   const opt = sel.options[sel.selectedIndex]
-  if (opt && opt.dataset.unit) {
-    const qtyUnit = document.getElementById('s-qty-unit')
-    if (qtyUnit) {
-      for (let i = 0; i < qtyUnit.options.length; i++) {
-        if (qtyUnit.options[i].value === opt.dataset.unit) qtyUnit.selectedIndex = i
-      }
-    }
+  if (!opt || !opt.value) return
+
+  const category = opt.dataset.category || ''
+
+  // 更新類別顯示欄
+  const catDisplay = document.getElementById('s-category-display')
+  if (catDisplay) catDisplay.value = category
+
+  // 顯示/隱藏熟雞區塊
+  const cookSection = document.getElementById('s-cook-section')
+  if (cookSection) cookSection.style.display = category === '熟雞' ? 'grid' : 'none'
+
+  // 更新標籤提示
+  updateSaleLabels(category)
+  calcSaleTotal()
+}
+
+function setSelectValue(sel, val) {
+  for (let i = 0; i < sel.options.length; i++) {
+    if (sel.options[i].value === val) { sel.selectedIndex = i; return }
   }
 }
 
-function calcSaleTotal() {
-  const qty = parseFloat(document.getElementById('s-qty')?.value) || 0
-  const price = parseFloat(document.getElementById('s-price')?.value) || 0
-  const total = qty * price
-  const el = document.getElementById('s-total')
-  if (el) el.value = total > 0 ? total.toFixed(0) : ''
+function updateSaleLabels(category) {
+  const qtyLabel   = document.getElementById('s-qty-label')
+  const priceLabel = document.getElementById('s-price-label')
+  if (!qtyLabel || !priceLabel) return
+
+  if (category === '生鮮') {
+    qtyLabel.textContent   = '數量（隻/件）*'
+    priceLabel.textContent = '單價（元/斤）*'
+  } else if (category === '冷凍') {
+    qtyLabel.textContent   = '數量（隻/件）*'
+    priceLabel.textContent = '單價（元/KG）*'
+  } else if (category === '熟雞') {
+    qtyLabel.textContent   = '數量（隻）*'
+    priceLabel.textContent = '原料單價 *'
+  } else {
+    qtyLabel.textContent   = '數量 *'
+    priceLabel.textContent = '單價 *'
+  }
 }
 
 async function saveSale() {
   const customerSel = document.getElementById('s-customer')
-  const productSel = document.getElementById('s-product')
-  const data = {
-    date: document.getElementById('s-date').value,
-    customer_id: customerSel.value || null,
-    customer_name: customerSel.options[customerSel.selectedIndex]?.dataset?.name || customerSel.value,
-    product_id: productSel.value || null,
-    product_name: productSel.options[productSel.selectedIndex]?.dataset?.name || productSel.value,
-    category: productSel.options[productSel.selectedIndex]?.dataset?.category || null,
-    spec: document.getElementById('s-spec').value || null,
-    quantity: parseFloat(document.getElementById('s-qty').value),
-    qty_unit: document.getElementById('s-qty-unit').value,
-    unit_price: parseFloat(document.getElementById('s-price').value),
-    total_amount: parseFloat(document.getElementById('s-total').value) || null,
-    payment_status: document.getElementById('s-status').value,
-    note: document.getElementById('s-note').value || null,
+  const productSel  = document.getElementById('s-product')
+  const productOpt  = productSel.options[productSel.selectedIndex]
+  const category    = productOpt?.dataset?.category || null
+  const cookFee     = parseFloat(document.getElementById('s-cook-fee')?.value) || 0
+  const cookType    = document.getElementById('s-cook-type')?.value || ''
+
+  // 組建備註（含煮工費紀錄）
+  let note = document.getElementById('s-note').value || ''
+  if (category === '熟雞' && cookFee > 0) {
+    note = note ? `${note}；煮工費：${cookFee}` : `煮工費：${cookFee}`
   }
+
+  const data = {
+    date:           document.getElementById('s-date').value,
+    customer_id:    customerSel.value || null,
+    customer_name:  customerSel.options[customerSel.selectedIndex]?.dataset?.name || customerSel.value,
+    product_id:     productSel.value || null,
+    product_name:   productOpt?.dataset?.name || '',
+    category,
+    unit:           (category === '冷凍' || cookType === '冷凍') ? 'KG' : '斤',
+    spec:           parseFloat(document.getElementById('s-spec').value) || null,
+    quantity:       parseFloat(document.getElementById('s-qty').value),
+    qty_unit:       document.getElementById('s-qty-unit')?.value || '隻',
+    unit_price:     parseFloat(document.getElementById('s-price').value),
+    total_amount:   parseFloat(document.getElementById('s-total').value) || null,
+    diff_amount:    parseFloat(document.getElementById('s-diff')?.value) || null,
+    payment_status: document.getElementById('s-status').value,
+    note,
+  }
+
   if (!data.date || !data.customer_name || !data.product_name || !data.quantity || !data.unit_price) {
     showToast('請填寫必填欄位', 'error'); return
   }
@@ -506,60 +747,128 @@ async function loadPurchases() {
   const data = await api('GET', `/purchases?year=${y}&month=${m}`)
   if (!data) return
 
-  const totalAmt = data.reduce((s, r) => s + (r.total_amount || 0), 0)
-  const unpaid = data.filter(r => r.payment_status === '未付').reduce((s, r) => s + (r.total_amount || 0), 0)
+  // ── 合併：同日期 + 同廠商 + 同品項 → 加總
+  const merged = []
+  const keyMap = {}
+  for (const r of data) {
+    const key = `${r.date}|${r.supplier_id||r.supplier_name}|${r.product_id||r.product_name}`
+    if (keyMap[key] !== undefined) {
+      const g = merged[keyMap[key]]
+      g.total_kg      = parseFloat(((g.total_kg || 0) + parseFloat(r.spec || 0)).toFixed(2))
+      g.total_qty    += parseFloat(r.quantity || 0)
+      g.total_amount += parseFloat(r.total_amount || 0)
+      g.ids.push(r.id)
+      if (r.payment_status === '未付') g.payment_status = '未付'
+    } else {
+      keyMap[key] = merged.length
+      merged.push({
+        ...r,
+        total_kg:     parseFloat(r.spec || 0),
+        total_qty:    parseFloat(r.quantity || 0),
+        total_amount: parseFloat(r.total_amount || 0),
+        ids: [r.id],
+      })
+    }
+  }
+
+  const totalAmt = merged.reduce((s, r) => s + r.total_amount, 0)
+  const unpaid   = merged.filter(r => r.payment_status === '未付').reduce((s, r) => s + r.total_amount, 0)
 
   el.innerHTML = `
-  <div class="flex items-center gap-2 mb-4 flex-wrap">
-    <select class="input-field" style="width:90px" onchange="state.year=parseInt(this.value);loadPurchases()">
+  <div class="filter-bar">
+    <select onchange="state.year=parseInt(this.value);loadPurchases()">
       ${[2024,2025,2026,2027].map(y => `<option value="${y}" ${y===state.year?'selected':''}>${y}年</option>`).join('')}
     </select>
-    <select class="input-field" style="width:90px" onchange="state.month=parseInt(this.value);loadPurchases()">
+    <select onchange="state.month=parseInt(this.value);loadPurchases()">
       ${Array.from({length:12},(_,i)=>`<option value="${i+1}" ${i+1===state.month?'selected':''}>${i+1}月</option>`).join('')}
     </select>
-    <div class="flex-1"></div>
-    <button onclick="openPurchaseModal()" class="btn-primary"><i class="fas fa-plus mr-1"></i>新增進貨</button>
+    <button onclick="openPurchaseModal()" class="btn-primary" style="margin-left:auto;"><i class="fas fa-plus"></i>新增進貨</button>
   </div>
-  <div class="grid grid-cols-2 md:grid-cols-3 gap-3 mb-4">
-    <div class="card p-3 text-center"><div class="text-xs text-gray-500 mb-1">本期筆數</div><div class="text-xl font-bold text-red-600">${data.length}</div></div>
-    <div class="card p-3 text-center"><div class="text-xs text-gray-500 mb-1">本期總額</div><div class="text-lg font-bold text-red-600">$${fmt(totalAmt)}</div></div>
-    <div class="card p-3 text-center col-span-2 md:col-span-1"><div class="text-xs text-gray-500 mb-1">待付款</div><div class="text-lg font-bold text-amber-600">$${fmt(unpaid)}</div></div>
-  </div>
-  <div class="card overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="table-header"><tr>
-          <th class="text-left p-3">日期</th>
-          <th class="text-left p-3">廠商</th>
-          <th class="text-left p-3 hidden md:table-cell">商品</th>
-          <th class="text-right p-3 hidden sm:table-cell">數量</th>
-          <th class="text-right p-3">金額</th>
-          <th class="text-center p-3">狀態</th>
-          <th class="text-center p-3">操作</th>
-        </tr></thead>
-        <tbody>
-          ${data.length === 0 ? '<tr><td colspan="7" class="p-8 text-center text-gray-400">尚無資料</td></tr>' :
-            data.map(r => `
-            <tr class="border-b border-gray-50">
-              <td class="p-3 text-gray-500">${fmtDate(r.date)}</td>
-              <td class="p-3 font-medium">${r.supplier_name||'-'}</td>
-              <td class="p-3 text-gray-600 hidden md:table-cell">${r.product_name||'-'}${r.spec ? ' '+r.spec+'KG' : ''}</td>
-              <td class="p-3 text-right text-gray-600 hidden sm:table-cell">${r.quantity}${r.qty_unit||''}</td>
-              <td class="p-3 text-right font-semibold">$${fmt(r.total_amount)}</td>
-              <td class="p-3 text-center">
-                <button onclick="cyclePurchaseStatus(${r.id},'${r.payment_status}')" class="${getStatusClass(r.payment_status)}">${r.payment_status}</button>
-              </td>
-              <td class="p-3 text-center">
-                <button onclick="openPurchaseModal(${r.id})" class="text-blue-500 mr-2"><i class="fas fa-edit"></i></button>
-                <button onclick="deletePurchase(${r.id})" class="text-red-400"><i class="fas fa-trash"></i></button>
-              </td>
-            </tr>`).join('')}
-        </tbody>
-      </table>
+
+  <div class="sum-cards">
+    <div class="sum-card">
+      <div class="sum-card-label">筆數</div>
+      <div class="sum-card-value blue">${merged.length}</div>
     </div>
+    <div class="sum-card">
+      <div class="sum-card-label">本期總額</div>
+      <div class="sum-card-value red">$${fmt(totalAmt)}</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-card-label">待付款</div>
+      <div class="sum-card-value">$${fmt(unpaid)}</div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="ftbl">
+      <colgroup>
+        <col style="width:88px">   <!-- 日期 -->
+        <col style="width:72px">   <!-- 廠商 -->
+        <col style="width:72px">   <!-- 品項 -->
+        <col style="width:52px">   <!-- KG -->
+        <col style="width:44px">   <!-- 量 -->
+        <col style="width:54px">   <!-- 單價 -->
+        <col style="width:70px">   <!-- 金額 -->
+        <col style="width:54px">   <!-- 狀態 -->
+        <col style="width:56px">   <!-- 操作 -->
+      </colgroup>
+      <thead class="table-header"><tr>
+        <th>日期</th>
+        <th>廠商</th>
+        <th>品項</th>
+        <th class="td-num">KG</th>
+        <th class="td-num">數量</th>
+        <th class="td-num">單價</th>
+        <th class="td-num">金額</th>
+        <th class="td-ctr">狀態</th>
+        <th class="td-ctr">操作</th>
+      </tr></thead>
+      <tbody>
+        ${merged.length === 0
+          ? '<tr><td colspan="9" style="text-align:center;padding:28px;color:var(--text-dim);">尚無資料</td></tr>'
+          : merged.map(r => `
+          <tr>
+            <td class="fc tc-dim">${fmtDate(r.date)}</td>
+            <td class="fc tc-bold" title="${r.supplier_name||''}">${r.supplier_name||'-'}</td>
+            <td class="fc tc-sub" title="${r.product_name||'-'}">${r.product_name||'-'}</td>
+            <td class="td-num tc-blue">${r.total_kg > 0 ? parseFloat(r.total_kg).toFixed(1) : '-'}</td>
+            <td class="td-num">${Math.round(r.total_qty)}</td>
+            <td class="td-num">${r.cost_price ? parseFloat(r.cost_price).toFixed(1) : '-'}</td>
+            <td class="td-num tc-gold">$${fmt(r.total_amount)}</td>
+            <td class="td-ctr">
+              <button onclick="cyclePurchaseStatus(${r.ids[0]},'${r.payment_status}')" class="${getStatusClass(r.payment_status)}" style="cursor:pointer;">${r.payment_status}</button>
+            </td>
+            <td class="td-ctr">
+              ${r.ids.length === 1
+                ? `<button onclick="openPurchaseModal(${r.ids[0]})" class="ic-btn ic-edit"><i class="fas fa-edit"></i></button><button onclick="deletePurchase(${r.ids[0]})" class="ic-btn ic-del"><i class="fas fa-trash"></i></button>`
+                : `<button onclick="showPurchaseGroup([${r.ids.join(',')}])" class="ic-btn ic-grp" title="${r.ids.length}筆"><i class="fas fa-layer-group"></i>${r.ids.length}</button>`
+              }
+            </td>
+          </tr>`).join('')}
+      </tbody>
+    </table>
   </div>`
 }
 
+function showPurchaseGroup(ids) {
+  const listHTML = ids.map((id, i) => `
+    <div style="display:flex; align-items:center; justify-content:space-between; padding:10px 0; border-bottom:1px solid var(--border);">
+      <span style="color:var(--text-2); font-size: 28px;">第 ${i+1} 筆 (ID: ${id})</span>
+      <div style="display:flex; gap:10px;">
+        <button onclick="openPurchaseModal(${id}); closeModal();" class="btn-secondary" style="font-size: 26px; padding:6px 14px;"><i class="fas fa-edit"></i> 編輯</button>
+        <button onclick="deletePurchase(${id}); closeModal();" class="btn-danger" style="font-size: 26px; padding:6px 12px;"><i class="fas fa-trash"></i> 刪除</button>
+      </div>
+    </div>`).join('')
+  showModal(`
+    <div class="modal-handle"></div>
+    <div class="modal-title"><i class="fas fa-layer-group"></i>合併筆數 — 選擇操作</div>
+    ${listHTML}
+    <div style="margin-top:14px; text-align:right;">
+      <button onclick="closeModal()" class="btn-secondary">關閉</button>
+    </div>
+  `)
+}
 async function cyclePurchaseStatus(id, current) {
   const next = current === '未付' ? '已付' : '未付'
   await api('PATCH', `/purchases/${id}/pay`, { status: next })
@@ -577,115 +886,251 @@ async function openPurchaseModal(id = null) {
   state.editingId = id
   let r = {}
   if (id) {
-    const list = await api('GET', `/purchases?year=2026`)
+    const list = await api('GET', `/purchases?year=${state.year}`)
     r = list?.find(x => x.id === id) || {}
   }
+  const editCategory = r.category || ''
+  const isCooked = editCategory === '熟雞'
+  const cookFeeMatch = (r.note || '').match(/煮工費[:：](\d+)/)
+  const cookFee = cookFeeMatch ? cookFeeMatch[1] : ''
 
   showModal(`
   <div class="modal-box">
-    <div class="flex items-center justify-between mb-4">
-      <h2 class="text-lg font-bold">${id ? '編輯' : '新增'}進貨記錄</h2>
-      <button onclick="closeModal()" class="text-gray-400 text-xl">✕</button>
+    <div class="modal-handle"></div>
+    <div class="modal-title">
+      <i class="fas fa-${id ? 'edit' : 'plus-circle'}"></i>
+      ${id ? '編輯' : '新增'}進貨記錄
+      <button class="btn-secondary" style="margin-left:auto;font-size: 24px;padding:2px 8px;" onclick="closeModal()">✕</button>
     </div>
-    <div class="space-y-3">
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">日期 *</label>
-          <input type="date" id="p-date" class="input-field" value="${r.date ? fmtDate(r.date) : today()}">
-        </div>
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">批號</label>
-          <input type="text" id="p-batch" class="input-field" value="${r.batch_no||''}" placeholder="如 C005">
-        </div>
+
+    <!-- 日期 + 付款狀態 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;padding:0 14px;">
+      <div>
+        <label>日期 *</label>
+        <input type="date" id="p-date" class="input-field" value="${r.date ? fmtDate(r.date) : today()}">
       </div>
       <div>
-        <label class="text-sm text-gray-600 mb-1 block">廠商</label>
-        <select id="p-supplier" class="input-field">
-          <option value="">-- 選擇廠商 --</option>
-          ${state.suppliers.map(s => `<option value="${s.id}" data-name="${s.name}" ${r.supplier_id==s.id?'selected':''}>${s.name}</option>`).join('')}
+        <label>付款狀態 *</label>
+        <select id="p-status" class="input-field">
+          ${['未付','已付'].map(s => `<option value="${s}" ${r.payment_status===s?'selected':''}>${s}</option>`).join('')}
         </select>
       </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">商品</label>
-          <select id="p-product" class="input-field">
-            <option value="">-- 選擇商品 --</option>
-            ${state.products.map(p => `<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit}" data-category="${p.category}" ${r.product_id==p.id?'selected':''}>${p.name}(${p.category})</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">規格(KG)</label>
-          <input type="number" id="p-spec" class="input-field" value="${r.spec||''}" step="0.1" placeholder="如 2.5">
-        </div>
-      </div>
-      <div class="grid grid-cols-3 gap-3">
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">數量 *</label>
-          <input type="number" id="p-qty" class="input-field" value="${r.quantity||''}" oninput="calcPurchaseTotal()">
-        </div>
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">單位</label>
-          <select id="p-qty-unit" class="input-field">
-            ${['隻','件','KG','斤'].map(u => `<option value="${u}" ${r.qty_unit===u?'selected':''}>${u}</option>`).join('')}
-          </select>
-        </div>
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">進價</label>
-          <input type="number" id="p-cost" class="input-field" value="${r.cost_price||''}" oninput="calcPurchaseTotal()">
-        </div>
-      </div>
-      <div class="grid grid-cols-2 gap-3">
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">總金額</label>
-          <input type="number" id="p-total" class="input-field" value="${r.total_amount||''}">
-        </div>
-        <div>
-          <label class="text-sm text-gray-600 mb-1 block">付款狀態</label>
-          <select id="p-status" class="input-field">
-            ${['未付','已付'].map(s => `<option value="${s}" ${r.payment_status===s?'selected':''}>${s}</option>`).join('')}
-          </select>
-        </div>
+    </div>
+
+    <!-- 廠商 -->
+    <div style="margin-bottom:10px;">
+      <label>廠商</label>
+      <select id="p-supplier" class="input-field">
+        <option value="">-- 選擇廠商 --</option>
+        ${state.suppliers.map(s => `<option value="${s.id}" data-name="${s.name}" ${r.supplier_id==s.id?'selected':''}>${s.name}</option>`).join('')}
+      </select>
+    </div>
+
+    <!-- 品項 + 類別 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;padding:0 14px;">
+      <div>
+        <label>品項</label>
+        <select id="p-product" class="input-field" onchange="onPurchaseProductChange()">
+          <option value="">-- 選擇商品 --</option>
+          ${state.products.map(p => `<option value="${p.id}" data-name="${p.name}" data-unit="${p.unit}" data-category="${p.category}" ${r.product_id==p.id?'selected':''}>${p.name}（${p.category}）</option>`).join('')}
+        </select>
       </div>
       <div>
-        <label class="text-sm text-gray-600 mb-1 block">備註</label>
-        <input type="text" id="p-note" class="input-field" value="${r.note||''}">
+        <label>類別</label>
+        <input type="text" id="p-category-display" class="input-field" readonly
+               style="background:var(--bg-2);color:var(--text-dim);"
+               value="${r.category||''}" placeholder="選商品後自動帶入">
       </div>
     </div>
-    <div class="flex gap-3 mt-4">
-      <button onclick="closeModal()" class="btn-secondary flex-1">取消</button>
-      <button onclick="savePurchase()" class="btn-primary flex-1">儲存</button>
+
+    <!-- 熟雞專用 -->
+    <div id="p-cook-section" style="display:${isCooked?'grid':'none'};grid-template-columns:1fr 1fr;gap:10px;margin-bottom:10px;
+         background:rgba(212,163,75,.06);border:1px solid rgba(212,163,75,.15);border-radius:8px;padding:10px;">
+      <div>
+        <label style="color:var(--orange);">熟雞底層類型 *</label>
+        <select id="p-cook-type" class="input-field" onchange="calcPurchaseTotal()">
+          <option value="生鮮" ${(r.unit||'')!=='KG'?'selected':''}>生鮮雞（KG÷0.6×單價）</option>
+          <option value="冷凍" ${(r.unit||'')==='KG'?'selected':''}>冷凍雞（KG×單價×數量）</option>
+        </select>
+      </div>
+      <div>
+        <label style="color:var(--orange);">煮工費（元/隻）</label>
+        <input type="number" id="p-cook-fee" class="input-field" value="${cookFee}" placeholder="如 50" oninput="calcPurchaseTotal()">
+      </div>
+    </div>
+
+    <!-- 規格 + 數量 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;padding:0 14px;">
+      <div>
+        <label>規格(KG) ─ 每隻重</label>
+        <input type="number" id="p-spec" class="input-field" value="${r.spec||''}"
+               step="0.1" min="0" max="999.9" placeholder="XXX.X" oninput="calcPurchaseTotal()"
+               style="text-align:right;">
+      </div>
+      <div>
+        <label id="p-qty-label">數量（隻/件）</label>
+        <div style="display:flex;gap:6px;align-items:center;">
+          <input type="number" id="p-qty" class="input-field" value="${r.quantity||''}"
+                 step="1" min="0" max="999" placeholder="XXX" oninput="calcPurchaseTotal()"
+                 style="text-align:right;flex:1;">
+          <select id="p-qty-unit" class="input-field" style="width:60px;padding:9px 4px;flex-shrink:0;">
+            <option value="隻" ${(r.qty_unit||'隻')==='隻'?'selected':''}>隻</option>
+            <option value="件" ${(r.qty_unit||'隻')==='件'?'selected':''}>件</option>
+          </select>
+        </div>
+      </div>
+    </div>
+
+    <!-- 單價 -->
+    <div style="margin-bottom:10px;">
+      <label id="p-cost-label">進價 *</label>
+      <input type="number" id="p-cost" class="input-field" value="${r.cost_price||''}"
+             step="0.1" min="0" max="999.9" placeholder="XXX.X" oninput="calcPurchaseTotal()"
+             style="text-align:right;">
+    </div>
+
+    <!-- 計算公式提示 -->
+    <div id="p-calc-hint" style="display:none;font-size: 26px;color:var(--orange);
+         background:rgba(212,163,75,.06);border:1px solid rgba(212,163,75,.15);
+         border-radius:6px;padding:7px 10px;margin-bottom:10px;letter-spacing:.3px;"></div>
+
+    <!-- 合計 + 差額 -->
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:8px;padding:0 14px;">
+      <div>
+        <label>總金額（自動計算）</label>
+        <input type="number" id="p-total" class="input-field" value="${r.total_amount||''}"
+               style="background:var(--bg-2);font-weight:700;font-size: 30px;color:var(--orange);text-align:right;"
+               placeholder="XXXXXX" readonly>
+      </div>
+      <div>
+        <label>差額（手動調整）</label>
+        <input type="number" id="p-diff" class="input-field" value="${r.diff_amount||''}"
+               placeholder="正負皆可">
+      </div>
+    </div>
+
+    <!-- 備註 -->
+    <div style="margin-bottom:14px;">
+      <label>備註</label>
+      <input type="text" id="p-note" class="input-field" value="${r.note||''}" placeholder="選填">
+    </div>
+
+    <div style="display:flex;gap:10px;">
+      <button onclick="closeModal()" class="btn-secondary" style="flex:1;">取消</button>
+      <button onclick="savePurchase()" class="btn-primary" style="flex:1;">
+        <i class="fas fa-check"></i> 儲存
+      </button>
     </div>
   </div>`)
+
+  if (r.product_id) setTimeout(() => calcPurchaseTotal(), 50)
+}
+function onPurchaseProductChange() {
+  const sel = document.getElementById('p-product')
+  const opt = sel?.options[sel.selectedIndex]
+  if (!opt || !opt.value) return
+  const category = opt.dataset.category || ''
+
+  // 更新類別顯示欄
+  const catDisplay = document.getElementById('p-category-display')
+  if (catDisplay) catDisplay.value = category
+
+  // 顯示/隱藏熟雞區塊
+  const cookSection = document.getElementById('p-cook-section')
+  if (cookSection) cookSection.style.display = category === '熟雞' ? 'grid' : 'none'
+
+  // 更新標籤
+  const qtyLabel  = document.getElementById('p-qty-label')
+  const costLabel = document.getElementById('p-cost-label')
+  if (category === '生鮮') {
+    if (qtyLabel)  qtyLabel.textContent  = '數量（隻/件）'
+    if (costLabel) costLabel.textContent = '進價（元/斤）*'
+  } else if (category === '冷凍') {
+    if (qtyLabel)  qtyLabel.textContent  = '數量（隻/件）'
+    if (costLabel) costLabel.textContent = '進價（元/KG）*'
+  } else {
+    if (qtyLabel)  qtyLabel.textContent  = '數量（隻/件）'
+    if (costLabel) costLabel.textContent = '進價 *'
+  }
+  calcPurchaseTotal()
 }
 
 function calcPurchaseTotal() {
-  const qty = parseFloat(document.getElementById('p-qty')?.value) || 0
-  const cost = parseFloat(document.getElementById('p-cost')?.value) || 0
-  const total = qty * cost
+  const spec  = parseFloat(document.getElementById('p-spec')?.value)  || 0
+  const count = parseFloat(document.getElementById('p-qty')?.value)   || 0
+  const cost  = parseFloat(document.getElementById('p-cost')?.value)  || 0
+  const cook  = parseFloat(document.getElementById('p-cook-fee')?.value) || 0
+  const productSel = document.getElementById('p-product')
+  const category = productSel?.options[productSel.selectedIndex]?.dataset?.category || ''
+
+  // 熟雞：用 cook-type 的有效類別
+  const cookType = document.getElementById('p-cook-type')?.value || ''
+  const effectiveCat = category === '熟雞' ? cookType : category
+  const isCooked = category === '熟雞'
+
+  let base = 0
+  let formula = ''
+  if (effectiveCat === '生鮮') {
+    base = (spec / 0.6) * cost
+    formula = `${spec}KG ÷ 0.6 × $${cost}/斤 = $${Math.round(base).toLocaleString()}`
+  } else if (effectiveCat === '冷凍') {
+    base = spec * cost * count
+    formula = `${spec}KG × $${cost}/KG × ${count}隻 = $${Math.round(base).toLocaleString()}`
+  } else {
+    base = spec * cost * count
+    formula = `${spec} × $${cost} × ${count} = $${Math.round(base).toLocaleString()}`
+  }
+
+  let cookTotal = 0
+  let cookNote = ''
+  if (isCooked && cook > 0 && count > 0) {
+    cookTotal = cook * count
+    cookNote = ` + 煮工費 $${cook} × ${count}隻 = $${Math.round(cookTotal).toLocaleString()}`
+  }
+
+  const total = base + cookTotal
   const el = document.getElementById('p-total')
-  if (el && total > 0) el.value = total.toFixed(0)
+  if (el) el.value = total > 0 ? Math.round(total) : ''
+
+  const hint = document.getElementById('p-calc-hint')
+  if (hint && spec > 0 && cost > 0) {
+    hint.textContent = formula + cookNote + `  →  合計 $${Math.round(total).toLocaleString()}`
+    hint.style.display = 'block'
+  } else if (hint) {
+    hint.style.display = 'none'
+  }
 }
 
 async function savePurchase() {
   const supplierSel = document.getElementById('p-supplier')
   const productSel = document.getElementById('p-product')
+  const category = productSel.options[productSel.selectedIndex]?.dataset?.category || null
+  const cookFee = parseFloat(document.getElementById('p-cook-fee')?.value) || 0
+  const cookType = document.getElementById('p-cook-type')?.value || ''
+
+  let note = document.getElementById('p-note').value || ''
+  if (category === '熟雞' && cookFee > 0) {
+    note = note ? `${note}；煮工費：${cookFee}` : `煮工費：${cookFee}`
+  }
+
   const data = {
     date: document.getElementById('p-date').value,
-    batch_no: document.getElementById('p-batch').value || null,
     supplier_id: supplierSel.value || null,
     supplier_name: supplierSel.options[supplierSel.selectedIndex]?.dataset?.name || null,
     product_id: productSel.value || null,
     product_name: productSel.options[productSel.selectedIndex]?.dataset?.name || null,
-    category: productSel.options[productSel.selectedIndex]?.dataset?.category || null,
-    spec: document.getElementById('p-spec').value || null,
+    category,
+    unit: (category === '冷凍' || cookType === '冷凍') ? 'KG' : '斤',
+    spec: parseFloat(document.getElementById('p-spec').value) || null,
     quantity: parseFloat(document.getElementById('p-qty').value),
-    qty_unit: document.getElementById('p-qty-unit').value,
+    qty_unit: document.getElementById('p-qty-unit')?.value || '隻',
     cost_price: parseFloat(document.getElementById('p-cost').value) || null,
     total_amount: parseFloat(document.getElementById('p-total').value) || null,
+    diff_amount: parseFloat(document.getElementById('p-diff')?.value) || null,
     payment_status: document.getElementById('p-status').value,
-    note: document.getElementById('p-note').value || null,
+    note,
   }
-  if (!data.date || !data.quantity) { showToast('日期和數量必填', 'error'); return }
+  if (!data.date) { showToast('日期必填', 'error'); return }
   const res = state.editingId
     ? await api('PUT', `/purchases/${state.editingId}`, data)
     : await api('POST', '/purchases', data)
@@ -1057,25 +1502,25 @@ async function loadReports() {
 
   <!-- 年度KPI -->
   <div class="grid grid-cols-2 md:grid-cols-4 gap-3 mb-4">
-    <div class="kpi-card" style="background:linear-gradient(135deg,#16a34a,#15803d)">
-      <div class="text-xs opacity-80 mb-1">年度營收</div>
-      <div class="text-lg font-bold">$${fmt(kpi.revenue)}</div>
-      <div class="text-xs opacity-80">目標達成 ${kpi.achievement_rate}%</div>
+    <div class="kpi-card green">
+      <div class="kpi-label">年度營收</div>
+      <div class="kpi-value">$${fmt(kpi.revenue)}</div>
+      <div class="kpi-sub">目標達成 ${kpi.achievement_rate}%</div>
     </div>
-    <div class="kpi-card" style="background:linear-gradient(135deg,#dc2626,#b91c1c)">
-      <div class="text-xs opacity-80 mb-1">年度成本</div>
-      <div class="text-lg font-bold">$${fmt(kpi.cost)}</div>
-      <div class="text-xs opacity-80">費用 $${fmt(kpi.expense)}</div>
+    <div class="kpi-card red">
+      <div class="kpi-label">年度成本</div>
+      <div class="kpi-value">$${fmt(kpi.cost)}</div>
+      <div class="kpi-sub">費用 $${fmt(kpi.expense)}</div>
     </div>
-    <div class="kpi-card" style="background:linear-gradient(135deg,#7c3aed,#6d28d9)">
-      <div class="text-xs opacity-80 mb-1">毛利</div>
-      <div class="text-lg font-bold">$${fmt(kpi.gross_profit)}</div>
-      <div class="text-xs opacity-80">毛利率 ${kpi.gross_margin}%</div>
+    <div class="kpi-card gold">
+      <div class="kpi-label">毛利</div>
+      <div class="kpi-value">$${fmt(kpi.gross_profit)}</div>
+      <div class="kpi-sub">毛利率 ${kpi.gross_margin}%</div>
     </div>
-    <div class="kpi-card" style="background:linear-gradient(135deg,#0891b2,#0e7490)">
-      <div class="text-xs opacity-80 mb-1">淨利</div>
-      <div class="text-lg font-bold">$${fmt(kpi.net_profit)}</div>
-      <div class="text-xs opacity-80">淨利率 ${kpi.net_margin}%</div>
+    <div class="kpi-card blue">
+      <div class="kpi-label">淨利</div>
+      <div class="kpi-value">$${fmt(kpi.net_profit)}</div>
+      <div class="kpi-sub">淨利率 ${kpi.net_margin}%</div>
     </div>
   </div>
 
@@ -1164,9 +1609,9 @@ async function loadReports() {
       data: {
         labels,
         datasets: [
-          { label: '營收', data: plData.map(r => r.revenue), backgroundColor: '#86efac', borderRadius: 4 },
-          { label: '成本', data: plData.map(r => r.cost), backgroundColor: '#fca5a5', borderRadius: 4 },
-          { label: '淨利', data: plData.map(r => r.net_profit), type: 'line', borderColor: '#7c3aed', backgroundColor: 'transparent', pointRadius: 4, tension: 0.4 },
+          { label: '營收', data: plData.map(r => r.revenue), backgroundColor: '#86efac', borderColor: '#1a9e5c', borderRadius: 4 },
+          { label: '成本', data: plData.map(r => r.cost), backgroundColor: '#fca5a5', borderColor: '#d63b3b', borderRadius: 4 },
+          { label: '淨利', data: plData.map(r => r.net_profit), type: 'line', borderColor: '#e07b2a', backgroundColor: 'transparent', pointRadius: 4, tension: 0.4 },
         ]
       },
       options: {
@@ -1181,54 +1626,118 @@ async function loadReports() {
 // === 庫存管理 ===
 async function loadInventory() {
   const el = document.getElementById('inventory-content')
-  const data = await api('GET', '/purchases?year=2026')
-  const salesData = await api('GET', '/sales?year=2026')
-  if (!data) return
+  const yr = state.year
+  const [purchData, salesData] = await Promise.all([
+    api('GET', `/purchases?year=${yr}`),
+    api('GET', `/sales?year=${yr}`),
+  ])
+  if (!purchData) return
 
-  // Calculate inventory from purchases - sales
+  // 以 product_name + category 為 key，彙總
   const invMap = {}
-  data.forEach(r => {
+
+  purchData.forEach(r => {
     const key = r.product_name || '未知'
-    if (!invMap[key]) invMap[key] = { product: key, category: r.category, purchased: 0, sold: 0, cost: r.cost_price || 0 }
-    invMap[key].purchased += (r.quantity || 0)
+    if (!invMap[key]) invMap[key] = {
+      product: key,
+      category: r.category || '-',
+      unit: r.unit || r.qty_unit || '隻',
+      purchased: 0,
+      sold: 0,
+      lastCost: 0,
+      lastDate: '',
+    }
+    invMap[key].purchased += parseFloat(r.quantity || 0)
+    // 取最近一筆進貨的成本價
+    if (r.date >= invMap[key].lastDate) {
+      invMap[key].lastCost = parseFloat(r.cost_price || 0)
+      invMap[key].lastDate = r.date || ''
+    }
   })
+
   ;(salesData || []).forEach(r => {
     const key = r.product_name
-    if (invMap[key]) invMap[key].sold += (r.quantity || 0)
-    else invMap[key] = { product: key, category: r.category, purchased: 0, sold: r.quantity || 0, cost: 0 }
+    if (invMap[key]) {
+      invMap[key].sold += parseFloat(r.quantity || 0)
+    } else {
+      invMap[key] = {
+        product: key,
+        category: r.category || '-',
+        unit: r.unit || r.qty_unit || '隻',
+        purchased: 0,
+        sold: parseFloat(r.quantity || 0),
+        lastCost: 0,
+        lastDate: r.date || '',
+      }
+    }
   })
 
   const inv = Object.values(invMap)
-    .map(r => ({ ...r, balance: r.purchased - r.sold }))
+    .map(r => ({ ...r, balance: Math.round(r.purchased - r.sold) }))
     .sort((a, b) => b.purchased - a.purchased)
 
+  const totalPurch = inv.reduce((s, r) => s + r.purchased, 0)
+  const totalSold  = inv.reduce((s, r) => s + r.sold, 0)
+
   el.innerHTML = `
-  <div class="mb-4 flex items-center justify-between">
-    <h3 class="font-bold text-gray-700">庫存概覽（依進出貨推算）</h3>
-    <span class="text-sm text-gray-400">2026年度</span>
+  <div class="filter-bar">
+    <select onchange="state.year=parseInt(this.value);loadInventory()">
+      ${[2024,2025,2026,2027].map(y=>`<option value="${y}" ${y===yr?'selected':''}>${y}年</option>`).join('')}
+    </select>
+    <span style="font-size:18px;color:var(--text-dim);margin-left:4px;">庫存概覽（依進出貨推算）</span>
   </div>
-  <div class="card overflow-hidden">
-    <div class="overflow-x-auto">
-      <table class="w-full text-sm">
-        <thead class="table-header"><tr>
-          <th class="text-left p-3">商品</th>
-          <th class="text-center p-3">類別</th>
-          <th class="text-right p-3">進貨</th>
-          <th class="text-right p-3">出貨</th>
-          <th class="text-right p-3">結餘</th>
-        </tr></thead>
-        <tbody>
-          ${inv.map(r => `
-          <tr class="border-b border-gray-50">
-            <td class="p-3 font-medium">${r.product}</td>
-            <td class="p-3 text-center"><span class="${r.category==='生鮮'?'badge-fresh':r.category==='冷凍'?'badge-frozen':'badge-cooked'} px-2 py-0.5 rounded text-xs">${r.category||'其他'}</span></td>
-            <td class="p-3 text-right">${fmt(r.purchased)}</td>
-            <td class="p-3 text-right">${fmt(r.sold)}</td>
-            <td class="p-3 text-right font-semibold ${r.balance < 0 ? 'text-red-600' : 'text-green-600'}">${fmt(r.balance)}</td>
-          </tr>`).join('')}
-        </tbody>
-      </table>
+
+  <div class="sum-cards" style="grid-template-columns:repeat(3,1fr);">
+    <div class="sum-card">
+      <div class="sum-card-label">品項數</div>
+      <div class="sum-card-value blue">${inv.length}</div>
     </div>
+    <div class="sum-card">
+      <div class="sum-card-label">進貨總量</div>
+      <div class="sum-card-value green">${fmt(totalPurch)}</div>
+    </div>
+    <div class="sum-card">
+      <div class="sum-card-label">出貨總量</div>
+      <div class="sum-card-value red">${fmt(totalSold)}</div>
+    </div>
+  </div>
+
+  <div class="tbl-wrap">
+    <table class="ftbl">
+      <colgroup>
+        <col style="width:100px">  <!-- 品項 -->
+        <col style="width:48px">   <!-- 類別 -->
+        <col style="width:72px">   <!-- 進貨量 -->
+        <col style="width:40px">   <!-- 單位 -->
+        <col style="width:72px">   <!-- 出貨量 -->
+        <col style="width:62px">   <!-- 單價 -->
+        <col style="width:70px">   <!-- 結餘 -->
+      </colgroup>
+      <thead class="table-header"><tr>
+        <th>品項</th>
+        <th class="td-ctr">類別</th>
+        <th class="td-num">進貨</th>
+        <th class="td-ctr">單位</th>
+        <th class="td-num">出貨</th>
+        <th class="td-num">單價</th>
+        <th class="td-num">結餘</th>
+      </tr></thead>
+      <tbody>
+        ${inv.length === 0
+          ? '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--text-dim);">尚無資料</td></tr>'
+          : inv.map(r => `
+          <tr>
+            <td class="fc tc-bold" title="${r.product}">${r.product}</td>
+            <td class="td-ctr"><span class="${r.category==='生鮮'?'badge-fresh':r.category==='冷凍'?'badge-frozen':'badge-cooked'}">${r.category}</span></td>
+            <td class="td-num tc-blue">${fmt(r.purchased, 0)}</td>
+            <td class="td-ctr tc-dim">${r.unit}</td>
+            <td class="td-num">${fmt(r.sold, 0)}</td>
+            <td class="td-num">${r.lastCost > 0 ? '$'+parseFloat(r.lastCost).toFixed(1) : '-'}</td>
+            <td class="td-num" style="font-weight:700;color:${r.balance < 0 ? 'var(--red)' : r.balance === 0 ? 'var(--text-dim)' : 'var(--green)'};">${fmt(r.balance, 0)}</td>
+          </tr>`).join('')
+        }
+      </tbody>
+    </table>
   </div>`
 }
 
@@ -1455,30 +1964,82 @@ async function saveSupplier() {
 // === 商品管理 ===
 async function loadProducts() {
   const el = document.getElementById('products-content')
-  const data = await api('GET', '/products')
+  // 同時取商品、供應商報價、客戶報價、最近進貨
+  const [data, supPrices, custPrices, purchData] = await Promise.all([
+    api('GET', '/products'),
+    api('GET', '/prices/supplier'),
+    api('GET', '/prices/customer'),
+    api('GET', '/purchases?year=2026'),
+  ])
   if (!data) return
+
+  // 建立供應商報價 map: product_id -> [{supplier_name, price}]
+  const supMap = {}
+  ;(supPrices || []).forEach(p => {
+    if (!supMap[p.product_id]) supMap[p.product_id] = []
+    supMap[p.product_id].push({ name: p.supplier_name, price: p.price })
+  })
+
+  // 建立最近進貨日期 map: product_name -> 最新date
+  const lastBuyMap = {}
+  ;(purchData || []).forEach(r => {
+    const k = r.product_id || r.product_name
+    if (!lastBuyMap[k] || r.date > lastBuyMap[k]) lastBuyMap[k] = r.date
+  })
+  // product_id -> last date
+  const lastBuyById = {}
+  ;(purchData || []).forEach(r => {
+    if (!lastBuyById[r.product_id] || r.date > lastBuyById[r.product_id])
+      lastBuyById[r.product_id] = r.date
+  })
+
   el.innerHTML = `
-  <div class="flex justify-end mb-4">
-    <button onclick="openProductModal()" class="btn-primary"><i class="fas fa-plus mr-1"></i>新增商品</button>
+  <div class="filter-bar">
+    <button onclick="openProductModal()" class="btn-primary"><i class="fas fa-plus"></i> 新增商品</button>
   </div>
-  <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
-    ${['生鮮','冷凍','熟雞'].map(cat => `
-    <div class="card p-4">
-      <h3 class="font-bold text-gray-700 mb-3 flex items-center gap-2">
-        <span class="${cat==='生鮮'?'badge-fresh':cat==='冷凍'?'badge-frozen':'badge-cooked'} px-2 py-0.5 rounded text-xs">${cat}</span>
-        ${cat}類（${data.filter(r=>r.category===cat).length}項）
-      </h3>
-      <div class="space-y-1">
-        ${data.filter(r=>r.category===cat).map(r => `
-        <div class="flex items-center justify-between py-1 border-b border-gray-50">
-          <span class="text-sm">${r.code} - ${r.name} <span class="text-gray-400">(${r.unit})</span></span>
-          <div>
-            <button onclick="openProductModal(${r.id})" class="text-blue-500 text-xs mr-1"><i class="fas fa-edit"></i></button>
-            <button onclick="deleteProduct(${r.id})" class="text-red-400 text-xs"><i class="fas fa-trash"></i></button>
-          </div>
-        </div>`).join('')}
-      </div>
-    </div>`).join('')}
+  <div class="tbl-wrap">
+    <table class="ftbl">
+      <colgroup>
+        <col style="width:80px">   <!-- 最近日期 -->
+        <col style="width:100px">  <!-- 品項 -->
+        <col style="width:48px">   <!-- 類別 -->
+        <col style="width:40px">   <!-- 單位 -->
+        <col style="width:180px">  <!-- 供應商（報價） -->
+        <col style="width:68px">   <!-- 操作 -->
+      </colgroup>
+      <thead class="table-header"><tr>
+        <th>日期</th>
+        <th>品項</th>
+        <th class="td-ctr">類別</th>
+        <th class="td-ctr">單位</th>
+        <th>供應商報價</th>
+        <th class="td-ctr">操作</th>
+      </tr></thead>
+      <tbody>
+        ${data.length === 0
+          ? '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--text-dim);">尚無資料</td></tr>'
+          : data.map(r => {
+              const sups = supMap[r.id] || []
+              const supStr = sups.length
+                ? sups.map(s => `${s.name} $${s.price}`).join('　')
+                : '-'
+              const lastDate = lastBuyById[r.id] ? fmtDate(lastBuyById[r.id]) : '-'
+              return `
+              <tr>
+                <td class="tc-dim">${lastDate}</td>
+                <td class="fc tc-bold" title="${r.name}">${r.name}</td>
+                <td class="td-ctr"><span class="${r.category==='生鮮'?'badge-fresh':r.category==='冷凍'?'badge-frozen':'badge-cooked'}">${r.category}</span></td>
+                <td class="td-ctr tc-dim">${r.unit||'-'}</td>
+                <td class="fc tc-sub" title="${supStr}">${supStr}</td>
+                <td class="td-ctr">
+                  <button onclick="openProductModal(${r.id})" class="ic-btn ic-edit"><i class="fas fa-edit"></i></button>
+                  <button onclick="deleteProduct(${r.id})" class="ic-btn ic-del"><i class="fas fa-trash"></i></button>
+                </td>
+              </tr>`
+            }).join('')
+        }
+      </tbody>
+    </table>
   </div>`
 }
 
@@ -1787,9 +2348,12 @@ async function wsLoad() {
 
 function renderStatement(container, data) {
   const { customer_name, date_start, date_end, items, summary } = data
-  const now = new Date().toLocaleDateString('zh-TW', { year:'numeric', month:'2-digit', day:'2-digit', hour:'2-digit', minute:'2-digit' })
+  const nowStr = new Date().toLocaleDateString('zh-TW', {
+    year:'numeric', month:'2-digit', day:'2-digit',
+    hour:'2-digit', minute:'2-digit'
+  })
 
-  // 依日期分組
+  // ── 依日期分組 ──
   const byDate = {}
   for (const r of items) {
     const d = (r.date || '').split('T')[0]
@@ -1797,129 +2361,233 @@ function renderStatement(container, data) {
     byDate[d].push(r)
   }
   const dates = Object.keys(byDate).sort()
+  const WD = ['日','一','二','三','四','五','六']
 
-  const weekdays = ['日','一','二','三','四','五','六']
-  const dayRows = dates.map((d, di) => {
+  // ── 重量顯示（給客戶看，只顯示數量+單位，不算公式）──
+  function displayQty(r) {
+    const qty = r.quantity || 0
+    const unit = r.qty_unit || r.unit || ''
+    return `${qty}${unit}`
+  }
+
+  // ── 每天的品項列 + 當天小計 ──
+  const dayBlocks = dates.map(d => {
     const dayItems = byDate[d]
     const dayTotal = dayItems.reduce((s, r) => s + (r.total_amount || 0), 0)
-    const wd = weekdays[new Date(d).getDay()]
-    return `
-    <tr class="${di % 2 === 0 ? 'statement-row-odd' : 'statement-row-even'}">
-      <td class="p-2 pl-3 text-gray-500 text-sm whitespace-nowrap">${d.slice(5)} (${wd})</td>
-      <td class="p-2">
-        ${dayItems.map(r => `
-          <div class="flex flex-wrap items-baseline gap-x-2 text-sm py-0.5">
-            <span class="font-medium text-gray-800">${r.product_name}</span>
-            ${r.category ? `<span class="statement-badge ${r.category === '生鮮' ? 'badge-fresh' : r.category === '冷凍' ? 'badge-frozen' : 'badge-cooked'}">${r.category}</span>` : ''}
-            <span class="text-gray-500">${r.quantity}${r.qty_unit || r.unit || ''}</span>
-            ${r.spec ? `<span class="text-gray-400 text-xs">${r.spec}${r.unit || ''}</span>` : ''}
-            <span class="text-gray-400 text-xs">×$${fmt(r.unit_price, 0)}</span>
-            <span class="font-semibold text-red-600 ml-auto">$${fmt(r.total_amount, 0)}</span>
-          </div>`).join('')}
-      </td>
-      <td class="p-2 pr-3 text-right font-bold text-gray-800 whitespace-nowrap">$${fmt(dayTotal, 0)}</td>
-    </tr>`
+    const dt = new Date(d + 'T12:00:00')
+    const wd = WD[dt.getDay()]
+    const dateLabel = `${parseInt(d.slice(5,7))}/${parseInt(d.slice(8,10))} (${wd})`
+
+    // 每筆品項
+    const itemRows = dayItems.map(r => `
+      <tr class="st-item-row">
+        <td class="st-td-date"></td>
+        <td class="st-td-product" style="font-size: 15px;color:#aaa;white-space:nowrap;">${r.category||''}</td>
+        <td class="st-td-product">${r.product_name}</td>
+        <td class="st-td-price">$${fmt(r.unit_price, 0)}</td>
+        <td class="st-td-qty">${displayQty(r)}</td>
+        <td class="st-td-amt">$${fmt(r.total_amount, 0)}</td>
+      </tr>`).join('')
+
+    // 當天小計列
+    const subtotalRow = `
+      <tr class="st-subtotal-row">
+        <td class="st-td-date">${dateLabel}</td>
+        <td class="st-td-product" colspan="4" style="text-align:right;font-size: 18px;color:#888;letter-spacing:.5px;">當日小計</td>
+        <td class="st-td-amt" style="color:#1a1a1a;font-weight:800;">$${fmt(dayTotal, 0)}</td>
+      </tr>`
+
+    return itemRows + subtotalRow
   }).join('')
 
-  container.innerHTML = `
-  <!-- 結算單卡片（capture-area） -->
-  <div class="capture-area" id="capture-area">
-    <div class="statement-card mb-4" id="statement-card">
+  // ── 空白結算單 ──
+  if (items.length === 0) {
+    container.innerHTML = `
+    <div style="background:#fff;border:1px solid #e0e0e0;border-radius:12px;padding:48px;text-align:center;color:#aaa;">
+      <div style="font-size: 39px;margin-bottom:12px;">📋</div>
+      <div style="font-size: 22px;">此期間無出貨記錄</div>
+    </div>`
+    return
+  }
 
-      <!-- 標題列 -->
-      <div class="statement-header relative overflow-hidden">
-        <div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%) rotate(-25deg);font-size:60px;color:rgba(255,255,255,0.06);font-weight:900;white-space:nowrap;pointer-events:none">雞王</div>
-        <div class="flex items-start justify-between relative z-10">
-          <div>
-            <div class="text-xs text-red-200 font-medium mb-0.5">雞王生鮮配送</div>
-            <div class="text-2xl font-bold tracking-wide">週結算單</div>
-            <div class="text-sm text-red-100 mt-1">
-              ${date_start} ～ ${date_end}
-            </div>
-          </div>
-          <div class="text-right">
-            <div class="text-xs text-red-200 mb-1">客戶</div>
-            <div class="text-xl font-bold">${customer_name}</div>
-            <div class="text-xs text-red-200 mt-1">製表：${now}</div>
-          </div>
+  // ── 總計與收款區 ──
+  const isPaid = summary.unpaid <= 0
+  const totalSection = `
+    <tr class="st-total-row">
+      <td colspan="5" style="
+        padding:14px 16px;
+        font-size: 20px;font-weight:700;letter-spacing:.5px;color:#555;
+        text-align:right;border-top:2px solid #1a1a1a;">
+        ${date_start} ～ ${date_end} 貨款合計
+      </td>
+      <td style="
+        padding:14px 16px;
+        font-size: 29px;font-weight:900;color:#1a1a1a;
+        text-align:right;border-top:2px solid #1a1a1a;
+        white-space:nowrap;">
+        $${fmt(summary.total, 0)}
+      </td>
+    </tr>
+    <tr>
+      <td colspan="5" style="padding:6px 16px;font-size: 19px;color:#888;text-align:right;">已付款</td>
+      <td style="padding:6px 16px;font-size: 20px;font-weight:700;color:#16a34a;text-align:right;">$${fmt(summary.paid || 0, 0)}</td>
+    </tr>
+    <tr>
+      <td colspan="5" style="padding:6px 16px 14px;font-size: 19px;color:#888;text-align:right;">待收款</td>
+      <td style="padding:6px 16px 14px;font-size: 23px;font-weight:900;color:#dc2626;text-align:right;">$${fmt(summary.unpaid || 0, 0)}</td>
+    </tr>
+    ${(summary.unpaid || 0) <= 0 ? `
+    <tr>
+      <td colspan="6" style="padding:8px 16px 14px;text-align:right;">
+        <span style="font-size: 19px;font-weight:700;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:3px 12px;">
+          ✓ 款項已結清
+        </span>
+      </td>
+    </tr>` : ''}`
+
+  container.innerHTML = `
+  <div class="capture-area" id="capture-area">
+
+    <!-- ════ 正式對客戶結算單（statement-card）════ -->
+    <div id="statement-card" style="
+      background:#ffffff;
+      border:1px solid #d0d0d0;
+      border-radius:4px;
+      font-family:-apple-system,BlinkMacSystemFont,'Helvetica Neue','PingFang TC','Microsoft JhengHei',sans-serif;
+      color:#1a1a1a;
+      max-width:640px;
+      margin:0 auto;
+      overflow:hidden;">
+
+      <!-- 頂部：公司資訊 + 單據標題 -->
+      <div style="
+        background:#1a1a1a;color:#fff;
+        padding:20px 22px 16px;
+        display:flex;align-items:flex-start;justify-content:space-between;">
+        <div>
+          <div style="font-size: 27px;font-weight:900;letter-spacing:1px;margin-bottom:4px;">雞王生鮮配送</div>
+          <div style="font-size: 18px;color:#888;letter-spacing:.5px;">CHICKEN KING FRESH DELIVERY</div>
         </div>
-        <!-- 統計徽章 -->
-        <div class="flex gap-3 mt-3 pt-3 border-t border-red-500 border-opacity-50">
-          <div class="flex-1 text-center">
-            <div class="text-xs text-red-200">出貨筆數</div>
-            <div class="font-bold text-lg">${summary.count}</div>
-          </div>
-          <div class="flex-1 text-center border-x border-red-500 border-opacity-30">
-            <div class="text-xs text-red-200">已收款</div>
-            <div class="font-bold text-lg text-green-300">$${fmt(summary.paid, 0)}</div>
-          </div>
-          <div class="flex-1 text-center">
-            <div class="text-xs text-red-200">待收款</div>
-            <div class="font-bold text-lg text-yellow-300">$${fmt(summary.unpaid, 0)}</div>
-          </div>
+        <div style="text-align:right;">
+          <div style="font-size: 25px;font-weight:800;letter-spacing:2px;color:#d4a34b;">出貨結算單</div>
+          <div style="font-size: 18px;color:#666;margin-top:4px;">製表：${nowStr}</div>
+        </div>
+      </div>
+
+      <!-- 客戶資訊 + 期間 -->
+      <div style="
+        background:#f7f7f7;border-bottom:1px solid #e0e0e0;
+        padding:12px 22px;
+        display:flex;align-items:center;justify-content:space-between;
+        flex-wrap:wrap;gap:8px;">
+        <div>
+          <span style="font-size: 18px;color:#888;letter-spacing:.5px;display:block;margin-bottom:2px;">客戶</span>
+          <span style="font-size: 24px;font-weight:800;color:#1a1a1a;">${customer_name}</span>
+        </div>
+        <div style="text-align:right;">
+          <span style="font-size: 18px;color:#888;letter-spacing:.5px;display:block;margin-bottom:2px;">結算期間</span>
+          <span style="font-size: 21px;font-weight:700;color:#1a1a1a;">${date_start} ～ ${date_end}</span>
         </div>
       </div>
 
       <!-- 明細表格 -->
-      ${items.length === 0 ? `<div class="p-8 text-center text-gray-400"><i class="fas fa-inbox text-3xl mb-2 block"></i>此期間無出貨記錄</div>` : `
-      <div class="overflow-x-auto">
-        <table class="w-full text-sm">
-          <thead class="table-header">
-            <tr>
-              <th class="p-2 pl-3 text-left text-gray-600 font-semibold whitespace-nowrap">日期</th>
-              <th class="p-2 text-left text-gray-600 font-semibold">品項明細</th>
-              <th class="p-2 pr-3 text-right text-gray-600 font-semibold whitespace-nowrap">日計</th>
+      <div style="overflow-x:auto;">
+        <table style="width:100%;border-collapse:collapse;">
+          <!-- 欄位標頭 -->
+          <thead>
+            <tr style="background:#f0f0f0;border-bottom:2px solid #1a1a1a;">
+              <th class="st-th" style="width:70px;">日期</th>
+              <th class="st-th" style="width:50px;">類別</th>
+              <th class="st-th" style="text-align:left;">品項</th>
+              <th class="st-th">單價</th>
+              <th class="st-th">數量</th>
+              <th class="st-th">金額</th>
             </tr>
           </thead>
           <tbody>
-            ${dayRows}
+            ${dayBlocks}
+            <!-- 空行 -->
+            <tr><td colspan="6" style="height:8px;background:#fafafa;border-top:1px solid #eee;"></td></tr>
+            <!-- 合計區 -->
+            ${totalSection}
           </tbody>
         </table>
       </div>
 
-      <!-- 合計列 -->
-      <div class="statement-total-row p-4">
-        <div class="flex items-center justify-between">
-          <div class="font-bold text-gray-800 text-base">
-            <i class="fas fa-calculator text-red-600 mr-2"></i>本期合計
-          </div>
-          <div class="text-2xl font-bold text-red-600">$${fmt(summary.total, 0)}</div>
-        </div>
-        ${summary.unpaid > 0 ? `
-        <div class="mt-2 flex items-center justify-between text-sm">
-          <span class="text-gray-500">尚餘待付款</span>
-          <span class="font-bold text-orange-600">$${fmt(summary.unpaid, 0)}</span>
-        </div>` : `
-        <div class="mt-2 flex items-center gap-2 text-green-600 text-sm font-semibold">
-          <i class="fas fa-check-circle"></i> 本期款項已全數結清
-        </div>`}
+      <!-- 底部備注 -->
+      <div style="
+        background:#f7f7f7;border-top:1px solid #e0e0e0;
+        padding:10px 22px;
+        display:flex;align-items:center;justify-content:space-between;">
+        <span style="font-size: 18px;color:#aaa;">如有疑問請與業務確認，謝謝。</span>
+        <span style="font-size: 18px;color:#ccc;font-family:monospace;">NO.${date_start.replace(/-/g,'')}${summary.count}</span>
       </div>
+    </div>
 
-      <!-- 底部說明 -->
-      <div class="px-4 py-3 bg-gray-50 border-t border-gray-100 text-xs text-gray-400 flex items-center justify-between">
-        <span>如有疑問請聯繫雞王業務</span>
-        <span class="font-mono">Total: $${fmt(summary.total, 0)}</span>
-      </div>
-      `}
+    <!-- 操作按鈕 -->
+    <div class="no-print" style="display:flex;flex-wrap:wrap;gap:10px;justify-content:center;margin-top:20px;padding-bottom:24px;">
+      <button onclick="wsDownloadPNG()" class="btn-primary" style="padding:10px 22px;font-size: 21px;">
+        <i class="fas fa-download"></i> 下載圖片
+      </button>
+      <button onclick="window.print()" class="btn-secondary" style="padding:10px 20px;font-size: 21px;">
+        <i class="fas fa-print"></i> 列印
+      </button>
+      <button onclick="wsShare()" id="ws-share-btn" class="btn-secondary" style="padding:10px 20px;font-size: 21px;">
+        <i class="fas fa-share-alt"></i> 分享
+      </button>
+      ${summary.unpaid > 0 ? `
+      <button onclick="wsMarkPaid()" class="btn-success" style="padding:10px 20px;font-size: 21px;">
+        <i class="fas fa-check"></i> 標記已收款
+      </button>` : ''}
     </div>
   </div>
 
-  <!-- 操作按鈕（no-print） -->
-  <div class="no-print flex flex-wrap gap-3 justify-center mt-4 pb-6">
-    <button onclick="wsDownloadPNG()" class="btn-primary flex items-center gap-2 px-6 py-3 text-base shadow-lg">
-      <i class="fas fa-download"></i> 下載圖片 (PNG)
-    </button>
-    <button onclick="window.print()" class="btn-secondary flex items-center gap-2 px-5 py-3 text-base">
-      <i class="fas fa-print"></i> 列印
-    </button>
-    <button onclick="wsShare()" id="ws-share-btn" class="btn-secondary flex items-center gap-2 px-5 py-3 text-base">
-      <i class="fas fa-share-alt"></i> 分享
-    </button>
-    ${summary.unpaid > 0 ? `
-    <button onclick="wsMarkPaid()" class="btn-success flex items-center gap-2 px-5 py-3 text-base">
-      <i class="fas fa-check"></i> 標記已收款
-    </button>` : ''}
-  </div>`
+  <style>
+    /* 結算單專用樣式（白底列印友善） */
+    .st-th {
+      padding:9px 12px;
+      font-size: 18px;font-weight:700;
+      letter-spacing:.8px;text-transform:uppercase;
+      color:#555;text-align:right;
+      white-space:nowrap;
+    }
+    .st-item-row td { border-bottom:1px solid #f0f0f0; }
+    .st-item-row:last-of-type td { border-bottom:none; }
+    .st-td-date {
+      padding:8px 12px;font-size: 19px;color:#888;
+      white-space:nowrap;vertical-align:middle;
+      width:70px;
+    }
+    .st-td-product {
+      padding:8px 12px;font-size: 20px;font-weight:600;color:#1a1a1a;
+      text-align:left;vertical-align:middle;
+    }
+    .st-td-price {
+      padding:8px 12px;font-size: 20px;color:#555;
+      text-align:right;vertical-align:middle;white-space:nowrap;
+    }
+    .st-td-qty {
+      padding:8px 12px;font-size: 20px;color:#555;
+      text-align:right;vertical-align:middle;white-space:nowrap;
+    }
+    .st-td-amt {
+      padding:8px 16px 8px 12px;font-size: 20px;font-weight:700;color:#1a1a1a;
+      text-align:right;vertical-align:middle;white-space:nowrap;
+    }
+    .st-subtotal-row td {
+      padding:6px 16px 10px 12px;
+      background:#fafafa;border-top:1px solid #e8e8e8;border-bottom:2px solid #d0d0d0;
+      font-size: 19px;
+    }
+    .st-subtotal-row .st-td-date {
+      font-weight:700;color:#1a1a1a;font-size: 20px;
+    }
+    @media print {
+      .no-print { display:none !important; }
+      body { background:#fff !important; }
+      #statement-card { border:1px solid #ccc !important; box-shadow:none !important; }
+    }
+  </style>`
 }
 
 async function wsDownloadPNG() {
@@ -1928,10 +2596,11 @@ async function wsDownloadPNG() {
   showToast('正在產生圖片...', 'success')
   try {
     const canvas = await html2canvas(el, {
-      scale: 2,
+      scale: 2.5,
       useCORS: true,
       backgroundColor: '#ffffff',
       logging: false,
+      letterRendering: true,
     })
     const link = document.createElement('a')
     const customer = weeklyData?.customer_name || '客戶'
@@ -1950,7 +2619,7 @@ async function wsShare() {
   const el = document.getElementById('statement-card')
   if (!el) return
   try {
-    const canvas = await html2canvas(el, { scale: 2, useCORS: true, backgroundColor: '#ffffff', logging: false })
+    const canvas = await html2canvas(el, { scale: 2.5, useCORS: true, backgroundColor: '#ffffff', logging: false, letterRendering: true })
     canvas.toBlob(async (blob) => {
       if (!blob) { showToast('產生圖片失敗', 'error'); return }
       const customer = weeklyData?.customer_name || '客戶'
@@ -1983,6 +2652,13 @@ async function wsMarkPaid() {
 }
 
 // ============================================================
+// === 登出 ===
+async function doLogout() {
+  if (!confirm('確定要登出嗎？')) return
+  await fetch('/api/auth/logout', { method: 'POST' })
+  location.reload()
+}
+
 // === 初始化 ===
 async function init() {
   // Set today's date
