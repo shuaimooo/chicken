@@ -74,7 +74,7 @@ const pageNames = {
   receivables: '應收帳款', payables: '應付帳款', expenses: '費用記錄',
   cashflow: '現金流水帳', reports: '財務報表', inventory: '庫存管理',
   customers: '客戶管理', suppliers: '廠商管理', products: '商品管理',
-  prices: '報價管理', weekly: '每週結算單', more: '更多功能',
+  prices: '報價管理', weekly: '每週結算單', ocr: '📷 紙張掃描匯入', more: '更多功能',
 }
 
 // 頁面歷史
@@ -181,6 +181,7 @@ async function loadPage(page) {
     case 'products': await loadProducts(); break
     case 'prices': await loadPrices(); break
     case 'weekly': await loadWeekly(); break
+    case 'ocr':    loadOcr(); break
   }
 }
 
@@ -2610,6 +2611,7 @@ function renderStatement(container, data) {
         <td class="st-td-date"></td>
         <td class="st-td-product" style="font-size: 15px;color:#aaa;white-space:nowrap;">${r.category||''}</td>
         <td class="st-td-product">${r.product_name}</td>
+        <td class="st-td-qty">${r.spec ? r.spec + ' KG' : '-'}</td>
         <td class="st-td-price">$${fmt(r.unit_price, 0)}</td>
         <td class="st-td-qty">${displayQty(r)}</td>
         <td class="st-td-amt">$${fmt(r.total_amount, 0)}</td>
@@ -2619,7 +2621,7 @@ function renderStatement(container, data) {
     const subtotalRow = `
       <tr class="st-subtotal-row">
         <td class="st-td-date">${dateLabel}</td>
-        <td class="st-td-product" colspan="4" style="text-align:right;font-size: 18px;color:#888;letter-spacing:.5px;">當日小計</td>
+        <td class="st-td-product" colspan="5" style="text-align:right;font-size: 18px;color:#888;letter-spacing:.5px;">當日小計</td>
         <td class="st-td-amt" style="color:#1a1a1a;font-weight:800;">$${fmt(dayTotal, 0)}</td>
       </tr>`
 
@@ -2640,7 +2642,7 @@ function renderStatement(container, data) {
   const isPaid = summary.unpaid <= 0
   const totalSection = `
     <tr class="st-total-row">
-      <td colspan="5" style="
+      <td colspan="6" style="
         padding:14px 16px;
         font-size: 20px;font-weight:700;letter-spacing:.5px;color:#555;
         text-align:right;border-top:2px solid #1a1a1a;">
@@ -2655,16 +2657,16 @@ function renderStatement(container, data) {
       </td>
     </tr>
     <tr>
-      <td colspan="5" style="padding:6px 16px;font-size: 19px;color:#888;text-align:right;">已付款</td>
+      <td colspan="6" style="padding:6px 16px;font-size: 19px;color:#888;text-align:right;">已付款</td>
       <td style="padding:6px 16px;font-size: 20px;font-weight:700;color:#16a34a;text-align:right;">$${fmt(summary.paid || 0, 0)}</td>
     </tr>
     <tr>
-      <td colspan="5" style="padding:6px 16px 14px;font-size: 19px;color:#888;text-align:right;">待收款</td>
+      <td colspan="6" style="padding:6px 16px 14px;font-size: 19px;color:#888;text-align:right;">待收款</td>
       <td style="padding:6px 16px 14px;font-size: 23px;font-weight:900;color:#dc2626;text-align:right;">$${fmt(summary.unpaid || 0, 0)}</td>
     </tr>
     ${(summary.unpaid || 0) <= 0 ? `
     <tr>
-      <td colspan="6" style="padding:8px 16px 14px;text-align:right;">
+      <td colspan="7" style="padding:8px 16px 14px;text-align:right;">
         <span style="font-size: 19px;font-weight:700;color:#16a34a;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:20px;padding:3px 12px;">
           ✓ 款項已結清
         </span>
@@ -2725,6 +2727,7 @@ function renderStatement(container, data) {
               <th class="st-th" style="width:70px;">日期</th>
               <th class="st-th" style="width:50px;">類別</th>
               <th class="st-th" style="text-align:left;">品項</th>
+              <th class="st-th">總重(KG)</th>
               <th class="st-th">單價</th>
               <th class="st-th">數量</th>
               <th class="st-th">金額</th>
@@ -2733,7 +2736,7 @@ function renderStatement(container, data) {
           <tbody>
             ${dayBlocks}
             <!-- 空行 -->
-            <tr><td colspan="6" style="height:8px;background:#fafafa;border-top:1px solid #eee;"></td></tr>
+            <tr><td colspan="7" style="height:8px;background:#fafafa;border-top:1px solid #eee;"></td></tr>
             <!-- 合計區 -->
             ${totalSection}
           </tbody>
@@ -2903,6 +2906,803 @@ async function doLogout() {
   location.reload()
 }
 
+// === 📷 紙張掃描匯入 ===
+let _ocrResults = []
+
+function loadOcr() {
+  const el = document.getElementById('ocr-content')
+  if (!el) return
+  el.innerHTML = `
+  <div style="max-width:680px; margin:0 auto;">
+
+    <!-- 標題區 -->
+    <div style="display:flex;align-items:center;gap:12px;margin-bottom:20px;">
+      <div style="width:44px;height:44px;border-radius:10px;background:rgba(79,209,197,.15);
+                  display:flex;align-items:center;justify-content:center;">
+        <i class="fas fa-camera" style="color:#4fd1c5;font-size:20px;"></i>
+      </div>
+      <div>
+        <div style="font-size:20px;font-weight:700;color:var(--text);">紙張掃描匯入</div>
+        <div style="font-size:13px;color:var(--text-dim);">拍照上傳手寫記錄，自動識別重量並匯入出貨/進貨</div>
+      </div>
+    </div>
+
+    <!-- 上傳區 -->
+    <div style="background:var(--bg-2);border:2px dashed var(--border);border-radius:14px;
+                padding:28px 22px;margin-bottom:16px;">
+      <div style="text-align:center;margin-bottom:18px;">
+        <i class="fas fa-file-image" style="font-size:36px;color:var(--text-dim);margin-bottom:10px;display:block;"></i>
+        <div style="font-size:15px;color:var(--text-dim);">選擇手寫記錄的照片</div>
+      </div>
+
+      <!-- 預覽圖 -->
+      <div id="ocr-img-preview" style="display:none;text-align:center;margin-bottom:16px;">
+        <img id="ocr-preview-img" style="max-width:100%;max-height:300px;border-radius:8px;border:1px solid var(--border);" />
+      </div>
+
+      <div style="display:flex;flex-direction:column;gap:10px;align-items:center;">
+        <label style="cursor:pointer;width:100%;">
+          <input type="file" id="ocr-file-input" accept="image/*" capture="environment"
+                 style="display:none;" onchange="ocrPreviewImage(this)">
+          <div style="width:100%;padding:12px;background:var(--bg-3);border:1px solid var(--border);
+                      border-radius:10px;text-align:center;cursor:pointer;font-size:15px;color:var(--text-2);">
+            <i class="fas fa-upload" style="margin-right:6px;"></i>選擇圖片 / 拍照
+          </div>
+        </label>
+        <button onclick="ocrRecognize()"
+          style="width:100%;padding:13px;background:linear-gradient(135deg,#4fd1c5,#38b2ac);
+                 border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:700;
+                 cursor:pointer;letter-spacing:1px;">
+          <i class="fas fa-magic" style="margin-right:6px;"></i>AI 識別重量
+        </button>
+      </div>
+
+      <div id="ocr-status" style="margin-top:14px;text-align:center;font-size:14px;color:var(--text-dim);min-height:20px;"></div>
+    </div>
+
+    <!-- 識別結果區 -->
+    <div id="ocr-result-area" style="display:none;">
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;">
+          <span style="font-size:15px;font-weight:700;color:var(--text);">
+            <i class="fas fa-list-ul" style="color:#4fd1c5;margin-right:6px;"></i>識別結果
+            <span id="ocr-count-badge" style="background:rgba(79,209,197,.2);color:#4fd1c5;
+                  border-radius:20px;padding:2px 10px;font-size:13px;margin-left:6px;"></span>
+          </span>
+          <button onclick="ocrAddRow()"
+            style="padding:6px 14px;background:var(--bg-3);border:1px solid var(--border);
+                   border-radius:8px;color:var(--text-2);font-size:13px;cursor:pointer;">
+            <i class="fas fa-plus"></i> 新增列
+          </button>
+        </div>
+
+        <!-- 表格 -->
+        <div style="overflow-x:auto;">
+          <table style="width:100%;border-collapse:collapse;font-size:14px;">
+            <thead>
+              <tr style="background:var(--bg-3);border-bottom:1px solid var(--border);">
+                <th style="padding:8px 10px;text-align:center;color:var(--text-dim);width:36px;">#</th>
+                <th style="padding:8px 10px;text-align:center;color:var(--text-dim);">重量 (KG)</th>
+                <th style="padding:8px 10px;text-align:center;color:var(--text-dim);">數量 (隻)</th>
+                <th style="padding:8px 10px;text-align:center;color:var(--text-dim);width:40px;">刪</th>
+              </tr>
+            </thead>
+            <tbody id="ocr-tbody"></tbody>
+            <tfoot>
+              <tr style="background:var(--bg-3);border-top:2px solid var(--border);">
+                <td colspan="2" style="padding:8px 10px;text-align:right;color:var(--text-dim);font-size:13px;">合計 KG</td>
+                <td colspan="2" style="padding:8px 10px;text-align:center;font-weight:700;color:var(--text);" id="ocr-total-kg">0</td>
+              </tr>
+            </tfoot>
+          </table>
+        </div>
+      </div>
+
+      <!-- 匯入設定 -->
+      <div style="background:var(--bg-2);border:1px solid var(--border);border-radius:14px;padding:18px;margin-bottom:14px;">
+        <div style="font-size:15px;font-weight:700;color:var(--text);margin-bottom:14px;">
+          <i class="fas fa-cog" style="color:#4fd1c5;margin-right:6px;"></i>匯入設定
+        </div>
+        <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;">
+          <div>
+            <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:5px;">匯入類型</label>
+            <select id="ocr-import-type" class="input-field">
+              <option value="sales">📤 出貨記錄</option>
+              <option value="purchases">📥 進貨記錄</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:5px;">日期</label>
+            <input type="date" id="ocr-import-date" class="input-field" value="${today()}">
+          </div>
+          <div>
+            <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:5px;">客戶／廠商</label>
+            <select id="ocr-party-select" class="input-field">
+              <option value="">-- 選擇 --</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:5px;">品項</label>
+            <select id="ocr-product-select" class="input-field">
+              <option value="">-- 選擇 --</option>
+            </select>
+          </div>
+          <div>
+            <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:5px;">單價 ($/KG)</label>
+            <input type="number" id="ocr-unit-price" class="input-field" placeholder="例：84" step="0.5">
+          </div>
+          <div>
+            <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:5px;">付款狀態</label>
+            <select id="ocr-pay-status" class="input-field">
+              <option value="待付款">待付款</option>
+              <option value="已付款">已付款</option>
+            </select>
+          </div>
+        </div>
+      </div>
+
+      <!-- 確認按鈕 -->
+      <div style="display:flex;gap:10px;">
+        <button onclick="ocrConfirmImport()"
+          style="flex:1;padding:14px;background:linear-gradient(135deg,#4fd1c5,#38b2ac);
+                 border:none;border-radius:10px;color:#fff;font-size:16px;font-weight:700;cursor:pointer;">
+          <i class="fas fa-check"></i> 確認匯入
+        </button>
+        <button onclick="ocrReset()"
+          style="padding:14px 20px;background:var(--bg-3);border:1px solid var(--border);
+                 border-radius:10px;color:var(--text-2);font-size:15px;cursor:pointer;">
+          <i class="fas fa-redo"></i> 重設
+        </button>
+      </div>
+    </div>
+
+  </div>`
+
+  // 填充客戶/廠商選單
+  ocrFillSelects()
+}
+
+function ocrFillSelects() {
+  const typeEl = document.getElementById('ocr-import-type')
+  if (!typeEl) return
+  const isSales = typeEl.value === 'sales'
+
+  const partyEl = document.getElementById('ocr-party-select')
+  const list = isSales ? state.customers : state.suppliers
+  partyEl.innerHTML = '<option value="">-- 選擇 --</option>' +
+    (list || []).map(x => `<option value="${x.id}|${x.name}">${x.name}</option>`).join('')
+
+  const prodEl = document.getElementById('ocr-product-select')
+  prodEl.innerHTML = '<option value="">-- 選擇 --</option>' +
+    (state.products || []).map(x => `<option value="${x.id}|${x.name}|${x.category}">${x.name}（${x.category}）</option>`).join('')
+
+  typeEl.addEventListener('change', ocrFillSelects)
+}
+
+function ocrPreviewImage(input) {
+  const file = input.files[0]
+  if (!file) return
+  const reader = new FileReader()
+  reader.onload = e => {
+    const img = document.getElementById('ocr-preview-img')
+    img.src = e.target.result
+    document.getElementById('ocr-img-preview').style.display = 'block'
+    document.getElementById('ocr-status').textContent = `已選擇：${file.name}`
+  }
+  reader.readAsDataURL(file)
+}
+
+async function ocrRecognize() {
+  const fileInput = document.getElementById('ocr-file-input')
+  const file = fileInput?.files?.[0]
+  if (!file) { showToast('請先選擇圖片', 'error'); return }
+
+  const statusEl = document.getElementById('ocr-status')
+  statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI 識別中，請稍候...'
+  statusEl.style.color = '#f59e0b'
+
+  try {
+    const reader = new FileReader()
+    reader.onload = async (e) => {
+      const base64 = e.target.result.split(',')[1]
+      const mediaType = file.type || 'image/jpeg'
+
+      const data = await api('POST', '/ocr-recognize', { image: base64, media_type: mediaType })
+      if (!data || data.error) throw new Error(data?.error || '識別失敗')
+
+      _ocrResults = data.weights || []
+      ocrRenderTable()
+
+      statusEl.innerHTML = `<i class="fas fa-check-circle" style="color:#4fd1c5"></i> 識別成功：${_ocrResults.length} 筆`
+      statusEl.style.color = '#4fd1c5'
+      document.getElementById('ocr-result-area').style.display = 'block'
+    }
+    reader.readAsDataURL(file)
+  } catch (err) {
+    statusEl.innerHTML = `<i class="fas fa-times-circle" style="color:var(--red)"></i> ${err.message}`
+    statusEl.style.color = 'var(--red)'
+  }
+}
+
+function ocrRenderTable() {
+  const tbody = document.getElementById('ocr-tbody')
+  if (!tbody) return
+  tbody.innerHTML = _ocrResults.map((item, i) => `
+    <tr style="border-bottom:1px solid var(--border);">
+      <td style="padding:7px 10px;text-align:center;color:var(--text-dim);">${i + 1}</td>
+      <td style="padding:7px 10px;text-align:center;">
+        <input type="number" value="${item.kg}" step="0.1" min="0"
+          style="width:90px;padding:5px 8px;background:var(--bg-3);border:1px solid var(--border);
+                 border-radius:6px;color:var(--text);text-align:center;font-size:14px;"
+          onchange="_ocrResults[${i}].kg=parseFloat(this.value)||0; ocrUpdateTotal()">
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <input type="number" value="${item.qty || 1}" min="1"
+          style="width:70px;padding:5px 8px;background:var(--bg-3);border:1px solid var(--border);
+                 border-radius:6px;color:var(--text);text-align:center;font-size:14px;"
+          onchange="_ocrResults[${i}].qty=parseInt(this.value)||1; ocrUpdateTotal()">
+      </td>
+      <td style="padding:7px 10px;text-align:center;">
+        <button onclick="_ocrResults.splice(${i},1);ocrRenderTable()"
+          style="background:none;border:none;color:var(--red);cursor:pointer;font-size:14px;">
+          <i class="fas fa-times"></i>
+        </button>
+      </td>
+    </tr>`).join('')
+  ocrUpdateTotal()
+  document.getElementById('ocr-count-badge').textContent = `${_ocrResults.length} 筆`
+}
+
+function ocrUpdateTotal() {
+  const total = _ocrResults.reduce((s, r) => s + (parseFloat(r.kg) || 0), 0)
+  const el = document.getElementById('ocr-total-kg')
+  if (el) el.textContent = total.toFixed(1) + ' KG'
+}
+
+function ocrAddRow() {
+  _ocrResults.push({ kg: 0, qty: 1 })
+  ocrRenderTable()
+  document.getElementById('ocr-result-area').style.display = 'block'
+}
+
+async function ocrConfirmImport() {
+  if (_ocrResults.length === 0) { showToast('沒有資料可匯入', 'error'); return }
+
+  const importType  = document.getElementById('ocr-import-type')?.value
+  const dateVal     = document.getElementById('ocr-import-date')?.value
+  const partyVal    = document.getElementById('ocr-party-select')?.value
+  const productVal  = document.getElementById('ocr-product-select')?.value
+  const unitPrice   = parseFloat(document.getElementById('ocr-unit-price')?.value || '0')
+  const payStatus   = document.getElementById('ocr-pay-status')?.value
+
+  if (!partyVal)   { showToast('請選擇客戶／廠商', 'error'); return }
+  if (!productVal) { showToast('請選擇品項', 'error'); return }
+  if (!unitPrice)  { showToast('請輸入單價', 'error'); return }
+
+  const [partyId, partyName]              = partyVal.split('|')
+  const [productId, productName, prodCat] = productVal.split('|')
+
+  let ok = 0, fail = 0
+
+  for (const row of _ocrResults) {
+    const kg  = parseFloat(row.kg) || 0
+    const qty = parseInt(row.qty)  || 1
+    if (kg <= 0) { fail++; continue }
+
+    const total = Math.round(kg * unitPrice)
+
+    if (importType === 'sales') {
+      const payload = {
+        date: dateVal,
+        customer_id:   parseInt(partyId),
+        customer_name: partyName,
+        product_id:    parseInt(productId),
+        product_name:  productName,
+        category:      prodCat || '生鮮',
+        spec:          kg,
+        unit:          'KG',
+        quantity:      qty,
+        qty_unit:      '隻',
+        unit_price:    unitPrice,
+        total_amount:  total,
+        payment_status: payStatus,
+        note:          '[掃描匯入]'
+      }
+      const res = await api('POST', '/sales', payload)
+      if (res?.id || res?.success) ok++; else fail++
+    } else {
+      const payload = {
+        date:           dateVal,
+        supplier_id:    parseInt(partyId),
+        supplier_name:  partyName,
+        product_id:     parseInt(productId),
+        product_name:   productName,
+        category:       prodCat || '生鮮',
+        spec:           kg,
+        total_weight:   kg,
+        unit:           'KG',
+        quantity:       qty,
+        qty_unit:       '隻',
+        cost_price:     unitPrice,
+        total_amount:   total,
+        payment_status: '未付',
+        note:          '[掃描匯入]'
+      }
+      const res = await api('POST', '/purchases', payload)
+      if (res?.id || res?.success) ok++; else fail++
+    }
+  }
+
+  if (ok > 0) {
+    showToast(`✅ 成功匯入 ${ok} 筆${fail > 0 ? `，失敗 ${fail} 筆` : ''}`)
+    ocrReset()
+    // 跳到對應頁面
+    showPage(importType === 'sales' ? 'sales' : 'purchases')
+  } else {
+    showToast(`匯入失敗，請確認設定`, 'error')
+  }
+}
+
+function ocrReset() {
+  _ocrResults = []
+  const fi = document.getElementById('ocr-file-input')
+  if (fi) fi.value = ''
+  document.getElementById('ocr-img-preview').style.display = 'none'
+  document.getElementById('ocr-result-area').style.display = 'none'
+  document.getElementById('ocr-status').textContent = ''
+}
+
+// ============================================================
+// === ⚡ 快速輸入（步驟式底部表單）===
+// ============================================================
+const QE = {
+  step: 1,
+  total: 7,
+  data: {
+    type: 'sales',      // sales | purchases
+    date: '',
+    category: '',
+    kg: null,
+    qty: 1,
+    unit_price: null,
+    total_amount: null,
+    party_id: null,
+    party_name: '',
+    product_id: null,
+    product_name: '',
+    prod_category: '',
+    pay_status: '待付款',
+  }
+}
+
+function openQuickEntry() {
+  // 重設
+  QE.step = 1
+  QE.data = {
+    type: 'sales', date: today(), category: '生鮮',
+    kg: null, qty: 1, unit_price: null, total_amount: null,
+    party_id: null, party_name: '',
+    product_id: null, product_name: '', prod_category: '生鮮',
+    pay_status: '待付款',
+  }
+  const ov = document.getElementById('quick-entry-overlay')
+  ov.style.display = 'flex'
+  qeRender()
+}
+
+function closeQuickEntry() {
+  document.getElementById('quick-entry-overlay').style.display = 'none'
+}
+
+// 點背景關閉
+document.getElementById('quick-entry-overlay')?.addEventListener('click', function(e) {
+  if (e.target === this) closeQuickEntry()
+})
+
+function qeRender() {
+  const body = document.getElementById('qe-body')
+  if (!body) return
+
+  // 進度條
+  const pct = Math.round((QE.step - 1) / QE.total * 100)
+  const stepLabels = ['類型','日期','類別','品項','重量','單價','確認']
+  const stepsHTML = stepLabels.map((l, i) => `
+    <div style="display:flex;flex-direction:column;align-items:center;flex:1;">
+      <div style="width:26px;height:26px;border-radius:50%;font-size:12px;font-weight:700;
+                  display:flex;align-items:center;justify-content:center;
+                  background:${i + 1 < QE.step ? '#22c55e' : i + 1 === QE.step ? '#f59e0b' : 'var(--bg-3)'};
+                  color:${i + 1 <= QE.step ? '#fff' : 'var(--text-dim)'};
+                  border:2px solid ${i + 1 < QE.step ? '#22c55e' : i + 1 === QE.step ? '#f59e0b' : 'var(--border)'};">
+        ${i + 1 < QE.step ? '<i class="fas fa-check" style="font-size:10px;"></i>' : i + 1}
+      </div>
+      <div style="font-size:10px;color:${i + 1 === QE.step ? '#f59e0b' : 'var(--text-dim)'};margin-top:3px;">${l}</div>
+    </div>`).join('')
+
+  let stepContent = ''
+
+  // ── Step 1：出貨 or 進貨 ──
+  if (QE.step === 1) {
+    stepContent = `
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:18px;">
+        這筆是？
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:24px;">
+        <button onclick="QE.data.type='sales'; qeNext()"
+          style="padding:22px 10px;border-radius:14px;border:2px solid ${QE.data.type==='sales'?'#f59e0b':'var(--border)'};
+                 background:${QE.data.type==='sales'?'rgba(245,158,11,.12)':'var(--bg-3)'};
+                 color:var(--text);cursor:pointer;font-size:16px;font-weight:700;">
+          <div style="font-size:30px;margin-bottom:6px;">📤</div>
+          出貨
+        </button>
+        <button onclick="QE.data.type='purchases'; qeNext()"
+          style="padding:22px 10px;border-radius:14px;border:2px solid ${QE.data.type==='purchases'?'#f59e0b':'var(--border)'};
+                 background:${QE.data.type==='purchases'?'rgba(245,158,11,.12)':'var(--bg-3)'};
+                 color:var(--text);cursor:pointer;font-size:16px;font-weight:700;">
+          <div style="font-size:30px;margin-bottom:6px;">📥</div>
+          進貨
+        </button>
+      </div>`
+  }
+
+  // ── Step 2：日期 ──
+  else if (QE.step === 2) {
+    stepContent = `
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:18px;">
+        <i class="fas fa-calendar-alt" style="color:#f59e0b;margin-right:8px;"></i>日期
+      </div>
+      <input type="date" id="qe-date" value="${QE.data.date}"
+        style="width:100%;padding:16px;font-size:20px;border-radius:12px;
+               background:var(--bg-3);border:2px solid var(--border);color:var(--text);
+               margin-bottom:20px;box-sizing:border-box;">
+      <div style="display:flex;gap:8px;margin-bottom:20px;">
+        ${[-1, 0].map(d => {
+          const dt = new Date(); dt.setDate(dt.getDate() + d)
+          const val = dt.toISOString().split('T')[0]
+          const label = d === 0 ? '今天' : '昨天'
+          return `<button onclick="document.getElementById('qe-date').value='${val}'"
+            style="flex:1;padding:10px;border-radius:10px;border:1px solid var(--border);
+                   background:var(--bg-3);color:var(--text-2);font-size:14px;cursor:pointer;">${label}</button>`
+        }).join('')}
+      </div>`
+  }
+
+  // ── Step 3：類別 + 客戶/廠商 ──
+  else if (QE.step === 3) {
+    const isSales = QE.data.type === 'sales'
+    const partyLabel = isSales ? '客戶' : '廠商'
+    const partyList = isSales ? (state.customers || []) : (state.suppliers || [])
+    stepContent = `
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">
+        <i class="fas fa-tag" style="color:#f59e0b;margin-right:8px;"></i>類別
+      </div>
+      <div style="display:flex;gap:8px;margin-bottom:20px;">
+        ${['生鮮','冷凍','熟雞'].map(c => `
+          <button onclick="QE.data.category='${c}';QE.data.prod_category='${c}';qeRender()"
+            style="flex:1;padding:14px 6px;border-radius:12px;font-size:15px;font-weight:700;cursor:pointer;
+                   border:2px solid ${QE.data.category===c?'#f59e0b':'var(--border)'};
+                   background:${QE.data.category===c?'rgba(245,158,11,.15)':'var(--bg-3)'};
+                   color:${QE.data.category===c?'#f59e0b':'var(--text-2)'};">${c}</button>`).join('')}
+      </div>
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:12px;">
+        <i class="fas fa-user" style="color:#f59e0b;margin-right:8px;"></i>${partyLabel}
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;margin-bottom:20px;max-height:180px;overflow-y:auto;">
+        ${partyList.map(p => `
+          <button onclick="QE.data.party_id=${p.id};QE.data.party_name='${p.name}';qeRender()"
+            style="padding:12px 8px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;text-align:left;
+                   border:2px solid ${QE.data.party_id===p.id?'#f59e0b':'var(--border)'};
+                   background:${QE.data.party_id===p.id?'rgba(245,158,11,.15)':'var(--bg-3)'};
+                   color:${QE.data.party_id===p.id?'#f59e0b':'var(--text-2)'};">
+            ${p.name}
+          </button>`).join('')}
+      </div>`
+  }
+
+  // ── Step 4：品項 ──
+  else if (QE.step === 4) {
+    const filtered = (state.products || []).filter(p =>
+      !QE.data.category || p.category === QE.data.category)
+    const all = (state.products || [])
+    const list = filtered.length > 0 ? filtered : all
+    stepContent = `
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">
+        <i class="fas fa-drumstick-bite" style="color:#f59e0b;margin-right:8px;"></i>品項
+        <span style="font-size:13px;color:var(--text-dim);font-weight:400;margin-left:6px;">${QE.data.category}</span>
+      </div>
+      <div style="display:grid;grid-template-columns:repeat(2,1fr);gap:8px;max-height:240px;overflow-y:auto;margin-bottom:20px;">
+        ${list.map(p => `
+          <button onclick="QE.data.product_id=${p.id};QE.data.product_name='${p.name}';QE.data.prod_category='${p.category}';qeRender()"
+            style="padding:12px 8px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;
+                   border:2px solid ${QE.data.product_id===p.id?'#f59e0b':'var(--border)'};
+                   background:${QE.data.product_id===p.id?'rgba(245,158,11,.15)':'var(--bg-3)'};
+                   color:${QE.data.product_id===p.id?'#f59e0b':'var(--text-2)'};">
+            ${p.name}
+          </button>`).join('')}
+      </div>`
+  }
+
+  // ── Step 5：重量 + 數量 ──
+  else if (QE.step === 5) {
+    stepContent = `
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">
+        <i class="fas fa-weight-hanging" style="color:#f59e0b;margin-right:8px;"></i>重量 &amp; 數量
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px;">
+        <div>
+          <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:6px;">總重量 (KG)</label>
+          <input type="number" id="qe-kg" value="${QE.data.kg ?? ''}" placeholder="例：24.3"
+            step="0.1" min="0" inputmode="decimal"
+            style="width:100%;padding:14px;font-size:22px;font-weight:700;border-radius:12px;
+                   background:var(--bg-3);border:2px solid var(--border);color:var(--text);
+                   box-sizing:border-box;text-align:center;"
+            oninput="QE.data.kg=parseFloat(this.value)||null; qeCalcTotal()">
+        </div>
+        <div>
+          <label style="font-size:13px;color:var(--text-dim);display:block;margin-bottom:6px;">數量 (隻)</label>
+          <input type="number" id="qe-qty" value="${QE.data.qty}" placeholder="1"
+            min="1" inputmode="numeric"
+            style="width:100%;padding:14px;font-size:22px;font-weight:700;border-radius:12px;
+                   background:var(--bg-3);border:2px solid var(--border);color:var(--text);
+                   box-sizing:border-box;text-align:center;"
+            oninput="QE.data.qty=parseInt(this.value)||1">
+        </div>
+      </div>
+      <!-- 拍照 OCR -->
+      <div style="border:1px dashed var(--border);border-radius:12px;padding:12px;margin-bottom:16px;">
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">
+          <i class="fas fa-camera" style="margin-right:4px;"></i>或拍照讓 AI 讀取數字
+        </div>
+        <label style="cursor:pointer;">
+          <input type="file" accept="image/*" capture="environment" style="display:none;"
+            onchange="qeOcrImage(this)">
+          <div style="padding:10px;background:var(--bg-3);border:1px solid var(--border);
+                      border-radius:8px;text-align:center;font-size:14px;color:var(--text-2);">
+            <i class="fas fa-camera" style="margin-right:6px;"></i>拍照識別
+          </div>
+        </label>
+        <div id="qe-ocr-status" style="font-size:13px;color:var(--text-dim);margin-top:6px;min-height:16px;"></div>
+      </div>`
+  }
+
+  // ── Step 6：單價 + 計算 ──
+  else if (QE.step === 6) {
+    const total = (QE.data.kg && QE.data.unit_price)
+      ? Math.round(QE.data.kg * QE.data.unit_price) : null
+    if (total !== null) QE.data.total_amount = total
+    stepContent = `
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">
+        <i class="fas fa-dollar-sign" style="color:#f59e0b;margin-right:8px;"></i>單價
+      </div>
+      <input type="number" id="qe-price" value="${QE.data.unit_price ?? ''}" placeholder="例：84"
+        step="0.5" min="0" inputmode="decimal"
+        style="width:100%;padding:16px;font-size:24px;font-weight:700;border-radius:12px;
+               background:var(--bg-3);border:2px solid var(--border);color:var(--text);
+               box-sizing:border-box;text-align:center;margin-bottom:14px;"
+        oninput="QE.data.unit_price=parseFloat(this.value)||null; qeCalcTotal()">
+
+      <!-- 自動計算結果 -->
+      <div id="qe-calc-box" style="background:var(--bg-3);border-radius:12px;padding:16px;margin-bottom:16px;">
+        <div style="font-size:13px;color:var(--text-dim);margin-bottom:8px;">自動計算</div>
+        <div style="display:flex;align-items:center;gap:8px;font-size:16px;color:var(--text-2);">
+          <span id="qe-calc-kg">${QE.data.kg ?? '?'} KG</span>
+          <span>×</span>
+          <span id="qe-calc-price">$${QE.data.unit_price ?? '?'}</span>
+          <span>=</span>
+          <span id="qe-calc-total" style="font-size:22px;font-weight:900;color:#f59e0b;">
+            ${QE.data.total_amount ? '$' + fmt(QE.data.total_amount, 0) : '—'}
+          </span>
+        </div>
+      </div>
+      <!-- 付款狀態 -->
+      <div style="display:flex;gap:8px;margin-bottom:8px;">
+        ${(QE.data.type === 'sales' ? ['待付款','已付款'] : ['未付','已付']).map(s => `
+          <button onclick="QE.data.pay_status='${s}';qeRender()"
+            style="flex:1;padding:10px;border-radius:10px;font-size:14px;font-weight:600;cursor:pointer;
+                   border:2px solid ${QE.data.pay_status===s?'#f59e0b':'var(--border)'};
+                   background:${QE.data.pay_status===s?'rgba(245,158,11,.15)':'var(--bg-3)'};
+                   color:${QE.data.pay_status===s?'#f59e0b':'var(--text-2)'};">${s}</button>`).join('')}
+      </div>`
+  }
+
+  // ── Step 7：確認 ──
+  else if (QE.step === 7) {
+    const isSales = QE.data.type === 'sales'
+    stepContent = `
+      <div style="font-size:18px;font-weight:700;color:var(--text);margin-bottom:16px;">
+        <i class="fas fa-check-circle" style="color:#22c55e;margin-right:8px;"></i>確認送出
+      </div>
+      <div style="background:var(--bg-3);border-radius:14px;padding:16px;margin-bottom:20px;">
+        <table style="width:100%;font-size:14px;border-collapse:collapse;">
+          <tr><td style="padding:6px 0;color:var(--text-dim);width:80px;">類型</td>
+              <td style="padding:6px 0;font-weight:700;color:var(--text);">${isSales ? '📤 出貨' : '📥 進貨'}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--text-dim);">日期</td>
+              <td style="padding:6px 0;font-weight:700;color:var(--text);">${QE.data.date}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--text-dim);">${isSales ? '客戶' : '廠商'}</td>
+              <td style="padding:6px 0;font-weight:700;color:var(--text);">${QE.data.party_name || '—'}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--text-dim);">品項</td>
+              <td style="padding:6px 0;font-weight:700;color:var(--text);">${QE.data.product_name || '—'}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--text-dim);">類別</td>
+              <td style="padding:6px 0;font-weight:700;color:var(--text);">${QE.data.category}</td></tr>
+          <tr><td style="padding:6px 0;color:var(--text-dim);">重量</td>
+              <td style="padding:6px 0;font-weight:700;color:var(--text);">${QE.data.kg} KG × ${QE.data.qty} 隻</td></tr>
+          <tr><td style="padding:6px 0;color:var(--text-dim);">單價</td>
+              <td style="padding:6px 0;font-weight:700;color:var(--text);">$${QE.data.unit_price}/KG</td></tr>
+          <tr style="border-top:1px solid var(--border);">
+            <td style="padding:10px 0 4px;color:var(--text-dim);font-size:15px;">金額</td>
+            <td style="padding:10px 0 4px;font-size:24px;font-weight:900;color:#f59e0b;">
+              $${fmt(QE.data.total_amount, 0)}
+            </td></tr>
+          <tr><td style="padding:4px 0;color:var(--text-dim);">狀態</td>
+              <td style="padding:4px 0;font-weight:700;color:var(--text);">${QE.data.pay_status}</td></tr>
+        </table>
+      </div>
+      <button onclick="qeSubmit()"
+        style="width:100%;padding:16px;border:none;border-radius:14px;
+               background:linear-gradient(135deg,#22c55e,#16a34a);
+               color:#fff;font-size:18px;font-weight:800;cursor:pointer;letter-spacing:1px;">
+        <i class="fas fa-check"></i> 確認送出
+      </button>`
+  }
+
+  // 導航按鈕
+  const navHTML = `
+    <div style="display:flex;align-items:center;justify-content:space-between;margin-top:16px;padding-top:12px;border-top:1px solid var(--border);">
+      <button onclick="${QE.step > 1 ? 'QE.step--; qeRender()' : 'closeQuickEntry()'}"
+        style="padding:10px 18px;border-radius:10px;border:1px solid var(--border);
+               background:var(--bg-3);color:var(--text-2);font-size:15px;cursor:pointer;">
+        ${QE.step > 1 ? '<i class="fas fa-arrow-left"></i> 上一步' : '<i class="fas fa-times"></i> 關閉'}
+      </button>
+      ${QE.step < QE.total ? `
+      <button onclick="qeNext()"
+        style="padding:10px 24px;border-radius:10px;border:none;
+               background:#f59e0b;color:#fff;font-size:15px;font-weight:700;cursor:pointer;">
+        下一步 <i class="fas fa-arrow-right"></i>
+      </button>` : ''}
+    </div>`
+
+  body.innerHTML = `
+    <!-- 進度步驟 -->
+    <div style="display:flex;align-items:flex-start;justify-content:space-between;margin-bottom:20px;padding:0 4px;">
+      ${stepsHTML}
+    </div>
+    ${stepContent}
+    ${navHTML}
+  `
+}
+
+function qeCalcTotal() {
+  const kg    = QE.data.kg
+  const price = QE.data.unit_price
+  const total = (kg && price) ? Math.round(kg * price) : null
+  QE.data.total_amount = total
+
+  // 即時更新顯示（Step 6 才有這些元素）
+  const tEl = document.getElementById('qe-calc-total')
+  const kEl = document.getElementById('qe-calc-kg')
+  const pEl = document.getElementById('qe-calc-price')
+  if (tEl) tEl.textContent = total ? '$' + fmt(total, 0) : '—'
+  if (kEl) kEl.textContent = (kg ?? '?') + ' KG'
+  if (pEl) pEl.textContent = '$' + (price ?? '?')
+}
+
+function qeNext() {
+  // 讀取當前 step 的輸入值
+  if (QE.step === 2) {
+    const d = document.getElementById('qe-date')?.value
+    if (!d) { showToast('請選擇日期', 'error'); return }
+    QE.data.date = d
+  }
+  if (QE.step === 3) {
+    if (!QE.data.party_id) { showToast('請選擇' + (QE.data.type === 'sales' ? '客戶' : '廠商'), 'error'); return }
+  }
+  if (QE.step === 4) {
+    if (!QE.data.product_id) { showToast('請選擇品項', 'error'); return }
+  }
+  if (QE.step === 5) {
+    const kg  = parseFloat(document.getElementById('qe-kg')?.value || '') || null
+    const qty = parseInt(document.getElementById('qe-qty')?.value || '') || 1
+    if (!kg) { showToast('請輸入重量', 'error'); return }
+    QE.data.kg  = kg
+    QE.data.qty = qty
+  }
+  if (QE.step === 6) {
+    const price = parseFloat(document.getElementById('qe-price')?.value || '') || null
+    if (!price) { showToast('請輸入單價', 'error'); return }
+    QE.data.unit_price   = price
+    QE.data.total_amount = Math.round((QE.data.kg || 0) * price)
+  }
+  QE.step++
+  qeRender()
+}
+
+async function qeOcrImage(input) {
+  const file = input?.files?.[0]
+  if (!file) return
+  const statusEl = document.getElementById('qe-ocr-status')
+  if (statusEl) statusEl.innerHTML = '<i class="fas fa-spinner fa-spin"></i> AI 識別中...'
+
+  const reader = new FileReader()
+  reader.onload = async (e) => {
+    const base64 = e.target.result.split(',')[1]
+    const data = await api('POST', '/ocr-recognize', { image: base64, media_type: file.type || 'image/jpeg' })
+    if (!data || data.error) {
+      if (statusEl) statusEl.innerHTML = '❌ 識別失敗：' + (data?.error || '未知錯誤')
+      return
+    }
+    const weights = data.weights || []
+    if (weights.length === 0) {
+      if (statusEl) statusEl.innerHTML = '⚠️ 找不到數字，請手動輸入'
+      return
+    }
+    // 取第一筆填入 KG，數量為所有筆數
+    const totalKg = weights.reduce((s, w) => s + (w.kg || 0), 0)
+    const totalQty = weights.reduce((s, w) => s + (w.qty || 1), 0)
+    QE.data.kg  = Math.round(totalKg * 10) / 10
+    QE.data.qty = totalQty
+    const kgEl  = document.getElementById('qe-kg')
+    const qtyEl = document.getElementById('qe-qty')
+    if (kgEl)  kgEl.value  = QE.data.kg
+    if (qtyEl) qtyEl.value = QE.data.qty
+    if (statusEl) statusEl.innerHTML = `✅ 識別 ${weights.length} 筆，合計 ${QE.data.kg} KG × ${totalQty} 隻`
+    qeCalcTotal()
+  }
+  reader.readAsDataURL(file)
+}
+
+async function qeSubmit() {
+  const d = QE.data
+  if (!d.kg || !d.unit_price || !d.product_id || !d.party_id) {
+    showToast('資料不完整，請檢查', 'error'); return
+  }
+
+  let res
+  if (d.type === 'sales') {
+    res = await api('POST', '/sales', {
+      date:           d.date,
+      customer_id:    d.party_id,
+      customer_name:  d.party_name,
+      product_id:     d.product_id,
+      product_name:   d.product_name,
+      category:       d.category || d.prod_category,
+      spec:           d.kg,
+      unit:           'KG',
+      quantity:       d.qty,
+      qty_unit:       '隻',
+      unit_price:     d.unit_price,
+      total_amount:   d.total_amount,
+      payment_status: d.pay_status,
+      note:           '[快速輸入]'
+    })
+  } else {
+    res = await api('POST', '/purchases', {
+      date:           d.date,
+      supplier_id:    d.party_id,
+      supplier_name:  d.party_name,
+      product_id:     d.product_id,
+      product_name:   d.product_name,
+      category:       d.category || d.prod_category,
+      spec:           d.kg,
+      total_weight:   d.kg,
+      unit:           'KG',
+      quantity:       d.qty,
+      qty_unit:       '隻',
+      cost_price:     d.unit_price,
+      total_amount:   d.total_amount,
+      payment_status: d.pay_status,
+      note:           '[快速輸入]'
+    })
+  }
+
+  if (res?.id || res?.success) {
+    closeQuickEntry()
+    showToast(`✅ 已新增${d.type === 'sales' ? '出貨' : '進貨'}：${d.product_name} ${d.kg}KG $${fmt(d.total_amount,0)}`)
+    // 跳到對應頁面
+    showPage(d.type === 'sales' ? 'sales' : 'purchases')
+  } else {
+    showToast('送出失敗：' + (res?.error || '請重試'), 'error')
+  }
+}
+
 // === 初始化 ===
 async function init() {
   // Set today's date
@@ -2918,5 +3718,18 @@ async function init() {
   showPage('dashboard')
 }
 
+// 手機浮動按鈕：在小螢幕顯示
+function initFab() {
+  const fab = document.getElementById('fab-quick')
+  if (!fab) return
+  if (window.innerWidth <= 768) {
+    fab.style.display = 'flex'
+  }
+  window.addEventListener('resize', () => {
+    fab.style.display = window.innerWidth <= 768 ? 'flex' : 'none'
+  })
+}
+
 // Start
 init()
+initFab()

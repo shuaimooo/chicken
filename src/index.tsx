@@ -15,8 +15,10 @@ import pricesRoute from './routes/prices'
 
 type Bindings = {
   DB: D1Database
-  APP_PASSWORD: string   // Cloudflare Secret
-  SESSION_SECRET: string // Cloudflare Secret
+  APP_PASSWORD: string    // Cloudflare Secret
+  SESSION_SECRET: string  // Cloudflare Secret
+  OPENAI_API_KEY: string  // Cloudflare Secret
+  OPENAI_BASE_URL: string // Cloudflare Secret
 }
 
 // ─── Session 工具 ───────────────────────────────────────────
@@ -238,6 +240,81 @@ app.post('/api/init-db', async (c) => {
     return c.json({ success: true, message: '資料庫初始化完成' })
   } catch (e: any) {
     return c.json({ success: false, error: e.message }, 500)
+  }
+})
+
+// ─── OCR 影像識別 API（使用 OpenAI GPT-4o Vision）────────────
+app.post('/api/ocr-recognize', async (c) => {
+  const apiKey  = c.env.OPENAI_API_KEY
+  const baseURL = c.env.OPENAI_BASE_URL || 'https://www.genspark.ai/api/llm_proxy/v1'
+  if (!apiKey) return c.json({ error: '未設定 OPENAI_API_KEY' }, 500)
+
+  try {
+    const body = await c.req.json()
+    const { image, media_type = 'image/jpeg' } = body
+    if (!image) return c.json({ error: '缺少 image 欄位' }, 400)
+
+    const resp = await fetch(`${baseURL}/chat/completions`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'gpt-5',
+        max_tokens: 1024,
+        messages: [{
+          role: 'user',
+          content: [
+            {
+              type: 'image_url',
+              image_url: {
+                url: `data:${media_type};base64,${image}`,
+                detail: 'high'
+              }
+            },
+            {
+              type: 'text',
+              text: `這是一張生鮮雞進出貨記錄紙。請識別所有的重量與數量數據。
+
+規則：
+- 數字如 243 代表 24.3 KG
+- 格式 134-6 代表 13.4 KG 有 6 隻
+- 格式 24.3 直接是 KG 數值
+- 只提取重量數字，忽略文字說明
+
+請以 JSON 格式回傳，例如：
+{
+  "weights": [
+    {"kg": 24.3, "qty": 1},
+    {"kg": 13.4, "qty": 6},
+    {"kg": 44.5, "qty": 1}
+  ]
+}
+
+只回傳 JSON，不要任何其他文字。`
+            }
+          ]
+        }]
+      })
+    })
+
+    if (!resp.ok) {
+      const errText = await resp.text()
+      return c.json({ error: `OpenAI API 錯誤: ${resp.status} ${errText}` }, 500)
+    }
+
+    const data: any = await resp.json()
+    const text = data.choices?.[0]?.message?.content || ''
+
+    // 提取 JSON（移除可能的 markdown code block）
+    const jsonMatch = text.match(/\{[\s\S]*\}/)
+    if (!jsonMatch) return c.json({ error: '無法解析識別結果', raw: text }, 500)
+
+    const result = JSON.parse(jsonMatch[0])
+    return c.json(result)
+  } catch (e: any) {
+    return c.json({ error: e.message }, 500)
   }
 })
 
@@ -883,7 +960,14 @@ function getIndexHTML(): string {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>雞王進銷存系統</title>
+  <title>陸旺進銷存</title>
+  <!-- PWA -->
+  <meta name="mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+  <meta name="apple-mobile-web-app-title" content="陸旺ERP">
+  <meta name="theme-color" content="#0c0c0e">
+  <link rel="manifest" href="/static/manifest.json">
   <link href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.4.0/css/all.min.css" rel="stylesheet">
   <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/axios@1.6.0/dist/axios.min.js"></script>
@@ -1581,6 +1665,11 @@ function getIndexHTML(): string {
       <button onclick="showPage('prices')" id="side-prices" class="nav-item">
         <span class="icon-wrap"><i class="fas fa-dollar-sign"></i></span><span>報價管理</span>
       </button>
+
+      <div class="nav-section-label">工具</div>
+      <button onclick="showPage('ocr')" id="side-ocr" class="nav-item">
+        <span class="icon-wrap"><i class="fas fa-camera"></i></span><span>紙張掃描匯入</span>
+      </button>
     </nav>
 
     <div style="padding:10px 8px; border-top:1px solid rgba(255,255,255,.1); display:flex; flex-direction:column; gap:6px;">
@@ -1610,8 +1699,8 @@ function getIndexHTML(): string {
                  padding:7px 12px;border-radius:8px;cursor:pointer;font-size:17px;transition:opacity .2s;">
           <i class="fas fa-arrow-left"></i>
         </button>
-        <button onclick="showPage('sales'); setTimeout(()=>openSaleModal?.(),100)" class="btn-primary" style="font-size: 17px; padding:7px 12px;">
-          <i class="fas fa-plus"></i><span id="quick-btn-text">快速出貨</span>
+        <button onclick="openQuickEntry()" class="btn-primary" style="font-size: 17px; padding:7px 12px;">
+          <i class="fas fa-bolt"></i><span id="quick-btn-text">快速輸入</span>
         </button>
         <button onclick="doLogout()" class="btn-logout" title="登出">
           <i class="fas fa-sign-out-alt"></i>
@@ -1636,6 +1725,7 @@ function getIndexHTML(): string {
       <div id="page-products"    class="page"><div id="products-content"></div></div>
       <div id="page-prices"      class="page"><div id="prices-content"></div></div>
       <div id="page-weekly"      class="page"><div id="weekly-content"></div></div>
+      <div id="page-ocr"         class="page"><div id="ocr-content"></div></div>
 
       <!-- More Page -->
       <div id="page-more" class="page">
@@ -1726,6 +1816,45 @@ function getIndexHTML(): string {
 
 <!-- Modal Container -->
 <div id="modal-container"></div>
+
+<!-- 快速輸入浮動按鈕（手機專用） -->
+<button id="fab-quick" onclick="openQuickEntry()"
+  style="position:fixed;bottom:80px;right:18px;z-index:50;
+         width:62px;height:62px;border-radius:50%;
+         background:linear-gradient(135deg,#f59e0b,#d97706);
+         border:none;color:#fff;font-size:28px;
+         box-shadow:0 4px 18px rgba(245,158,11,.55);
+         cursor:pointer;display:none;
+         align-items:center;justify-content:center;
+         transition:transform .15s;">
+  <i class="fas fa-bolt"></i>
+</button>
+
+<!-- 快速輸入步驟式 Modal -->
+<div id="quick-entry-overlay"
+  style="display:none;position:fixed;inset:0;z-index:70;
+         background:rgba(0,0,0,.7);backdrop-filter:blur(4px);
+         align-items:flex-end;justify-content:center;">
+  <div id="quick-entry-sheet"
+    style="background:var(--bg-2);border-radius:20px 20px 0 0;
+           width:100%;max-width:520px;
+           padding:0 0 env(safe-area-inset-bottom,16px);
+           animation:slideUp .25s ease;">
+    <!-- 拖拉條 -->
+    <div style="text-align:center;padding:10px 0 0;">
+      <div style="width:40px;height:4px;border-radius:2px;background:var(--border);display:inline-block;"></div>
+    </div>
+    <!-- 步驟內容 -->
+    <div id="qe-body" style="padding:16px 20px 20px;"></div>
+  </div>
+</div>
+
+<style>
+@keyframes slideUp {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+</style>
 
 <script>
   // Desktop sidebar show/hide via CSS media query approach
