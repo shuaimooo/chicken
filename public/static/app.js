@@ -1487,7 +1487,7 @@ async function openExpenseModal(id = null) {
         <div>
           <label class="text-sm text-gray-600 mb-1 block">類別 *</label>
           <select id="e-cat" class="input-field">
-            ${['油費','過路費','出差-交通','維修','餐費','雜支','其他'].map(c => `<option value="${c}" ${r.category===c?'selected':''}>${c}</option>`).join('')}
+           ${['油費','跑-竹雞','跑-送貨','跑-代班','雜支','其他'].map(c => `<option value="${c}" ${r.category===c?'selected':''}>${c}</option>`).join('')}
           </select>
         </div>
       </div>
